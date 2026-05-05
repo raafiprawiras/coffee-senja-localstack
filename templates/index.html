@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="customer-shell">
+  <section class="hero-banner">
+    <div class="hero-content">
+      <p class="eyebrow">Selamat datang di Coffee Senja</p>
+      <h1>Nikmati Kopi Favoritmu</h1>
+      <span class="hero-line"></span>
+      <p>Kopi berkualitas, cita rasa istimewa, teman terbaik di setiap waktu senja.</p>
+      <a class="btn btn-gold btn-large" href="#menu">Lihat Menu</a>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="cup-scene">
+        <div class="cup-latte">☕</div>
+        <div class="steam steam-one"></div>
+        <div class="steam steam-two"></div>
+        <div class="beans">✦ ✦ ✦</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="order-layout">
+    <section id="menu" class="menu-area">
+      <div class="category-tabs" role="tablist" aria-label="Kategori menu">
+        <button class="category-tab active" type="button" data-filter="all">☕ Semua</button>
+        <button class="category-tab" type="button" data-filter="coffee">☕ Coffee</button>
+        <button class="category-tab" type="button" data-filter="non-coffee">🥤 Non-Coffee</button>
+        <button class="category-tab" type="button" data-filter="snack">🥐 Snack</button>
+        <button class="category-tab" type="button" data-filter="dessert">🍰 Dessert</button>
+      </div>
+
+      <div class="menu-grid">
+        {% for item in menus %}
+          {% set category_value = (item.category or 'coffee')|lower|replace(' ', '-') %}
+          <article class="product-card" data-category="{{ category_value }}">
+            <div class="product-photo photo-{{ loop.index % 6 }}">
+              {% if item.image_path %}
+                <img src="{{ url_for('static', filename=item.image_path) }}" alt="Foto {{ item.name }}">
+              {% else %}
+                <span>{{ item.emoji or '☕' }}</span>
+              {% endif %}
+            </div>
+            <div class="product-body">
+              <div>
+                <span class="product-category">{{ item.category }}</span>
+                <h3>{{ item.name }}</h3>
+                <p>{{ item.description }}</p>
+              </div>
+              <div class="product-bottom">
+                <strong>{{ item.price|rupiah }}</strong>
+                <button class="small-gold toggle-order" type="button">Tambah +</button>
+              </div>
+              <form class="quick-order" method="post" action="{{ url_for('create_order') }}">
+                <input type="hidden" name="menu_id" value="{{ item.menu_id }}">
+                <label>
+                  Nama
+                  <input type="text" name="customer_name" placeholder="Nama kamu" required>
+                </label>
+                <div class="quick-row">
+                  <label>
+                    Qty
+                    <input type="number" name="quantity" min="1" value="1" required>
+                  </label>
+                  <label>
+                    Catatan
+                    <input type="text" name="note" placeholder="Less sugar, extra ice...">
+                  </label>
+                </div>
+                <button class="btn btn-gold full" type="submit">Pesan Menu Ini</button>
+              </form>
+            </div>
+          </article>
+        {% else %}
+          <div class="empty-card">Belum ada menu aktif.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <aside id="pesanan" class="order-sidebar">
+      <section class="cart-card">
+        <div class="cart-head">
+          <h2>Pesanan Anda</h2>
+          <span>🧾</span>
+        </div>
+        {% if orders %}
+          <div class="cart-list">
+            {% for order in orders[:3] %}
+              <div class="cart-item">
+                <div class="thumb">
+                  {% if order.menu_image_path %}
+                    <img src="{{ url_for('static', filename=order.menu_image_path) }}" alt="{{ order.menu_name }}">
+                  {% else %}
+                    {{ '☕' if order.menu_category != 'Snack' and order.menu_category != 'Dessert' else '🥐' }}
+                  {% endif %}
+                </div>
+                <div>
+                  <strong>{{ order.menu_name }}</strong>
+                  <small>{{ order.customer_name }} • Qty {{ order.quantity }}</small>
+                  <span class="status-pill {{ order.status|lower }}">{{ 'Siap' if order.status == 'READY' else 'Diproses' }}</span>
+                </div>
+                <b>{{ order.total|rupiah }}</b>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="cart-total">
+            <span>Total pesanan terbaru</span>
+            <strong>{{ orders[0].total|rupiah }}</strong>
+          </div>
+          <a class="btn btn-gold full" href="{{ url_for('receipt_page', order_id=orders[0].order_id) }}">Lihat Receipt</a>
+        {% else %}
+          <div class="empty-cart">
+            <span>☕</span>
+            <strong>Belum ada pesanan</strong>
+            <p>Pilih menu favorit kamu, isi nama, lalu klik pesan.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="info-card">
+        <div class="info-icon">⏱</div>
+        <div>
+          <h3>Pickup: 15 menit</h3>
+          <p>Pesanan kamu akan disiapkan hangat oleh barista.</p>
+        </div>
+      </section>
+
+      <section class="info-card" id="promo">
+        <div class="info-icon">✨</div>
+        <div>
+          <h3>Promo Senja</h3>
+          <p>Beli 2 menu signature, dapatkan potongan Rp 5.000.</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <section id="tentang" class="about-strip">
+    <div>
+      <p class="eyebrow">Tentang Kami</p>
+      <h2>Racikan hangat untuk momen yang tenang.</h2>
+    </div>
+    <p>Coffee Senja menghadirkan pengalaman pemesanan kopi yang ringkas, elegan, dan nyaman digunakan dari laptop maupun perangkat mobile.</p>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.toggle-order').forEach((button) => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.product-card');
+      card.classList.toggle('ordering');
+      const input = card.querySelector('input[name="customer_name"]');
+      if (card.classList.contains('ordering')) input.focus();
+    });
+  });
+
+  document.querySelectorAll('.category-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.category-tab').forEach((item) => item.classList.remove('active'));
+      tab.classList.add('active');
+      const filter = tab.dataset.filter;
+      document.querySelectorAll('.product-card').forEach((card) => {
+        const category = card.dataset.category || '';
+        const show = filter === 'all' || category.includes(filter);
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+{% endblock %}

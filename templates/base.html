@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('customer_page') }}" aria-label="Coffee Senja Home">
+      <span class="brand-icon">☕</span>
+      <span class="brand-name">Coffee Senja</span>
+    </a>
+
+    <nav class="main-nav" aria-label="Navigasi utama">
+      <a class="active" href="{{ url_for('customer_page') }}">Beranda</a>
+      <a href="{{ url_for('customer_page') }}#menu">Menu</a>
+      <a href="{{ url_for('customer_page') }}#promo">Promo</a>
+      <a href="{{ url_for('customer_page') }}#tentang">Tentang Kami</a>
+      {% if admin_username %}
+        <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+      {% endif %}
+    </nav>
+
+    <div class="header-actions">
+      <a class="cart-indicator" href="{{ url_for('customer_page') }}#pesanan" aria-label="Lihat pesanan">
+        <span class="cart-icon">🛍️</span>
+        <span class="cart-badge">{{ order_count|default(0) }}</span>
+      </a>
+      {% if admin_username %}
+        <a class="btn btn-gold" href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a class="btn btn-gold" href="{{ url_for('login') }}">Admin</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="toast-stack" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="toast {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <span>♥ Dibuat dengan cinta untuk pecinta kopi.</span>
+    <span>© Coffee Senja</span>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

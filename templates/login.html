@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="login-shell">
+  <div class="login-copy">
+    <p class="eyebrow">Admin Area</p>
+    <h1>Masuk ke dashboard Coffee Senja.</h1>
+    <p>Kelola menu, pantau antrean, dan selesaikan pesanan pelanggan dengan tampilan yang rapi dan profesional.</p>
+    <div class="credential-card">
+      <span>Default Login</span>
+      <strong>admin / admin123</strong>
+    </div>
+  </div>
+
+  <form class="login-card" method="post" action="{{ url_for('login') }}">
+    <h2>Admin Login</h2>
+    <label>
+      Username
+      <input type="text" name="username" placeholder="admin" required autofocus>
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" placeholder="admin123" required>
+    </label>
+    <button class="btn btn-gold full" type="submit">Login</button>
+    <a class="text-link center" href="{{ url_for('customer_page') }}">Kembali ke halaman order</a>
+  </form>
+</section>
+{% endblock %}

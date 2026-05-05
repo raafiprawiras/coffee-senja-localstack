@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="receipt-shell">
+  <article class="receipt-card">
+    <div class="receipt-header">
+      <span class="receipt-logo">CS</span>
+      <div>
+        <p class="eyebrow">Digital Receipt</p>
+        <h1>{{ order.order_id }}</h1>
+      </div>
+    </div>
+
+    <div class="receipt-status {{ order.status|lower }}">
+      {{ 'Pesanan siap diambil' if order.status == 'READY' else 'Pesanan sedang disiapkan' }}
+    </div>
+
+    <div class="receipt-lines">
+      <div><span>Customer</span><strong>{{ order.customer_name }}</strong></div>
+      <div><span>Menu</span><strong>{{ order.menu_name }}</strong></div>
+      <div><span>Quantity</span><strong>{{ order.quantity }}</strong></div>
+      <div><span>Harga</span><strong>{{ order.price|rupiah }}</strong></div>
+      <div><span>Total</span><strong>{{ order.total|rupiah }}</strong></div>
+      {% if order.note %}<div><span>Catatan</span><strong>{{ order.note }}</strong></div>{% endif %}
+    </div>
+
+    {% if receipt %}
+      <div class="receipt-note success-note">Receipt digital sudah tersedia. Terima kasih sudah memesan di Coffee Senja.</div>
+    {% else %}
+      <div class="receipt-note">Receipt digital akan tersedia setelah pesanan selesai diproses oleh barista.</div>
+    {% endif %}
+
+    <div class="receipt-actions">
+      <a class="btn btn-gold" href="{{ url_for('customer_page') }}">Pesan Lagi</a>
+      <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') if admin_username else url_for('login') }}">Dashboard</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

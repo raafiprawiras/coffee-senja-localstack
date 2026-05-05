@@ -1,0 +1,38 @@
+services:
+  localstack:
+    image: localstack/localstack:2.3
+    container_name: coffee-senja-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs,dynamodb
+      - AWS_DEFAULT_REGION=us-east-1
+      - DEBUG=1
+    volumes:
+      - coffee-senja-localstack-data:/var/lib/localstack
+
+  app:
+    build: .
+    container_name: coffee-senja-localstack-app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - localstack
+    volumes:
+      # Live edit: perubahan file di VS Code langsung masuk ke container /app
+      - .:/app
+    environment:
+      - APP_NAME=Coffee Senja
+      - APP_SECRET_KEY=coffee-senja-secret
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - S3_BUCKET_NAME=coffee-senja-localstack-receipts
+      - SQS_QUEUE_NAME=coffee-senja-localstack-orders
+      - MENU_TABLE_NAME=CoffeeSenjaLocalstackMenu
+      - ORDERS_TABLE_NAME=CoffeeSenjaLocalstackOrders
+      - USERS_TABLE_NAME=CoffeeSenjaLocalstackUsers
+      - DEFAULT_ADMIN_USERNAME=admin
+      - DEFAULT_ADMIN_PASSWORD=admin123
+
+volumes:
+  coffee-senja-localstack-data:

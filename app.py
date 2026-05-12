@@ -615,14 +615,6 @@ def delete_menu(menu_id):
     flash("Menu berhasil dihapus.", "success")
     return redirect(url_for("admin_dashboard"))
 
-    menu_table().update_item(
-        Key={"menu_id": menu_id},
-        UpdateExpression="SET image_path = :image_path, updated_at = :updated_at",
-        ExpressionAttributeValues={":image_path": image_path, ":updated_at": now_ts()},
-    )
-    flash(f"Foto menu '{item.get('name')}' berhasil diperbarui.", "success")
-    return redirect(url_for("admin_dashboard"))
-
 
 @app.post("/admin/process-queue")
 @admin_required

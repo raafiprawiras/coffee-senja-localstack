@@ -1,15 +1,26 @@
 services:
   localstack:
-    image: localstack/localstack:2.3
+    image: localstack/localstack:3.8.0
     container_name: coffee-senja-localstack
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=s3,sqs,dynamodb
+      - SERVICES=s3,sqs
       - AWS_DEFAULT_REGION=us-east-1
       - DEBUG=1
+    # LocalStack S3/SQS for free tier doesn't need persistence folder as much
+    # but we keep it for completeness if needed
     volumes:
-      - coffee-senja-localstack-data:/var/lib/localstack
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: coffee-senja-dynamodb
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
+    volumes:
+      - "./.dynamodb_data:/data"
 
   app:
     build: .
@@ -18,6 +29,7 @@ services:
       - "5000:5000"
     depends_on:
       - localstack
+      - dynamodb
     volumes:
       # Live edit: perubahan file di VS Code langsung masuk ke container /app
       - .:/app
@@ -26,6 +38,7 @@ services:
       - APP_SECRET_KEY=coffee-senja-secret
       - AWS_REGION=us-east-1
       - AWS_ENDPOINT_URL=http://localstack:4566
+      - DYNAMODB_ENDPOINT_URL=http://dynamodb:8000
       - S3_BUCKET_NAME=coffee-senja-localstack-receipts
       - SQS_QUEUE_NAME=coffee-senja-localstack-orders
       - MENU_TABLE_NAME=CoffeeSenjaLocalstackMenu
@@ -34,5 +47,4 @@ services:
       - DEFAULT_ADMIN_USERNAME=admin
       - DEFAULT_ADMIN_PASSWORD=admin123
 
-volumes:
-  coffee-senja-localstack-data:
+# Persistence moved to host-mapped directory ./.localstack_data

@@ -20,43 +20,55 @@
   </section>
 
   <section class="admin-grid">
-    <article class="panel-card">
-      <p class="eyebrow">Tambah Menu</p>
-      <h2>Menu baru</h2>
-      <form method="post" action="{{ url_for('add_menu') }}" class="stack-form" enctype="multipart/form-data">
-        <label>
-          Nama Menu
-          <input name="name" type="text" placeholder="Contoh: Senja Caramel Latte" required>
-        </label>
-        <div class="form-row">
-          <label>
-            Kategori
-            <select name="category" required>
-              <option>Coffee</option>
-              <option>Non-Coffee</option>
-              <option>Snack</option>
-              <option>Dessert</option>
-            </select>
+    <article class="panel-card premium-admin-card">
+      <div class="panel-card-header">
+        <p class="eyebrow">Inventory Management</p>
+        <h2>Tambah Menu Baru</h2>
+        <p class="panel-desc">Input detail menu premium untuk ditampilkan di katalog pelanggan.</p>
+      </div>
+
+      <form method="post" action="{{ url_for('add_menu') }}" class="premium-stack-form" enctype="multipart/form-data">
+        <div class="form-section">
+          <label class="premium-label">
+            Nama Produk
+            <input name="name" type="text" placeholder="e.g. Signature Velvet Latte" required>
           </label>
-          <label>
-            Ikon
-            <input name="emoji" type="text" placeholder="☕" maxlength="4">
+          
+          <div class="premium-grid-row">
+            <label class="premium-label">
+              Kategori
+              <select name="category" required>
+                <option value="Coffee">Coffee</option>
+                <option value="Non-Coffee">Non-Coffee</option>
+                <option value="Snack">Snack</option>
+                <option value="Dessert">Dessert</option>
+              </select>
+            </label>
+            <label class="premium-label">
+              Harga (IDR)
+              <input name="price" type="number" min="1" placeholder="35000" required>
+            </label>
+          </div>
+
+          <label class="premium-label">
+            Deskripsi Singkat
+            <textarea name="description" rows="3" placeholder="Ceritakan keistimewaan menu ini..." required></textarea>
+          </label>
+
+          <label class="premium-label">
+            Media Unggulan
+            <div class="file-upload-wrapper">
+              <input name="image" type="file" accept="image/*" id="menu-image-input">
+              <div class="file-upload-placeholder">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Pilih Foto Menu</span>
+              </div>
+            </div>
+            <small class="form-hint">Rekomendasi: 1:1 ratio, max 2MB.</small>
           </label>
         </div>
-        <label>
-          Harga
-          <input name="price" type="number" min="1" placeholder="35000" required>
-        </label>
-        <label>
-          Deskripsi
-          <textarea name="description" rows="4" placeholder="Deskripsi menu yang menggugah selera..." required></textarea>
-        </label>
-        <label>
-          Foto Menu
-          <input name="image" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/svg+xml">
-          <small class="form-hint">Opsional. Jika diisi, foto langsung tampil di halaman customer dan tersimpan di folder project.</small>
-        </label>
-        <button class="btn btn-gold full" type="submit">Simpan Menu Aktif</button>
+
+        <button class="btn btn-gold btn-large full" type="submit">Publish Menu</button>
       </form>
     </article>
 
@@ -80,41 +92,64 @@
   <section class="table-section">
     <div class="section-title">
       <p class="eyebrow">Menu Management</p>
-      <h2>Daftar Menu</h2>
+      <h2>Daftar Menu Aktif</h2>
     </div>
-    <div class="table-card">
-      <table>
-        <thead><tr><th>Foto</th><th>Menu</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Ganti Foto</th><th>Aksi</th></tr></thead>
+    <div class="table-card premium-table-card">
+      <table class="premium-table">
+        <thead>
+          <tr>
+            <th>Menu</th>
+            <th>Kategori</th>
+            <th>Harga</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
         <tbody>
           {% for item in menus %}
           <tr>
             <td>
-              <div class="menu-thumb">
-                {% if item.image_path %}
-                  <img src="{{ url_for('static', filename=item.image_path) }}" alt="Foto {{ item.name }}">
-                {% else %}
-                  <span>{{ item.emoji or '☕' }}</span>
-                {% endif %}
+              <div class="menu-info-flex">
+                <div class="menu-thumb-premium">
+                  {% if item.image_path %}
+                    <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.name }}">
+                  {% else %}
+                    <div class="thumb-placeholder">☕</div>
+                  {% endif %}
+                </div>
+                <div>
+                  <strong class="menu-item-name">{{ item.name }}</strong>
+                  <small class="menu-item-desc">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                </div>
               </div>
             </td>
-            <td><strong>{{ item.name }}</strong><small class="table-subtext">{{ item.description }}</small></td>
-            <td>{{ item.category }}</td>
-            <td>{{ item.price|rupiah }}</td>
-            <td><span class="status-pill {{ 'ready' if item.is_active else 'queued' }}">{{ 'Aktif' if item.is_active else 'Nonaktif' }}</span></td>
+            <td><span class="category-pill">{{ item.category }}</span></td>
+            <td><strong class="price-text">{{ item.price|rupiah }}</strong></td>
             <td>
-              <form class="inline-upload" method="post" action="{{ url_for('update_menu_photo', menu_id=item.menu_id) }}" enctype="multipart/form-data">
-                <input name="image" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/svg+xml" required>
-                <button class="mini-btn" type="submit">Upload</button>
-              </form>
+              <span class="status-badge {{ 'active' if item.is_active else 'inactive' }}">
+                {{ 'Aktif' if item.is_active else 'Nonaktif' }}
+              </span>
             </td>
             <td>
-              <form method="post" action="{{ url_for('toggle_menu', menu_id=item.menu_id) }}">
-                <button class="mini-btn" type="submit">{{ 'Nonaktifkan' if item.is_active else 'Aktifkan' }}</button>
-              </form>
+              <div class="action-group">
+                <button class="action-btn edit" 
+                        data-id="{{ item.menu_id }}"
+                        data-name="{{ item.name|e }}"
+                        data-category="{{ item.category }}"
+                        data-price="{{ item.price }}"
+                        data-description="{{ item.description|e }}"
+                        data-active="{{ 'true' if item.is_active else 'false' }}"
+                        onclick="initEditModal(this)">
+                  Edit
+                </button>
+                <form method="post" action="{{ url_for('delete_menu', menu_id=item.menu_id) }}" onsubmit="return confirm('Hapus menu ini secara permanen?')">
+                  <button class="action-btn delete" type="submit">Hapus</button>
+                </form>
+              </div>
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="7">Belum ada menu.</td></tr>
+          <tr><td colspan="5" class="table-empty">Belum ada menu yang terdaftar.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -127,35 +162,54 @@
       <h2>Manajemen Promo</h2>
     </div>
     
-    <div class="panel-card" style="margin-bottom: 2rem;">
-      <p class="eyebrow">Tambah Promo</p>
-      <form method="post" action="{{ url_for('add_promo') }}" class="form-row">
-        <input name="code" type="text" placeholder="KODE (Contoh: KOPI20)" required style="flex: 1;">
-        <input name="discount" type="number" placeholder="Diskon (Rp)" required style="width: 140px;">
-        <input name="min_purchase" type="number" placeholder="Min. Beli (Rp)" required style="width: 140px;">
-        <input name="description" type="text" placeholder="Keterangan promo..." style="flex: 2;">
-        <button class="btn btn-gold" type="submit" style="padding: 0 2rem;">Tambah</button>
+    <article class="panel-card premium-admin-card" style="margin-bottom: 3rem;">
+      <div class="panel-card-header">
+        <p class="eyebrow">Marketing Tool</p>
+        <h2>Buat Promo Baru</h2>
+      </div>
+      <form method="post" action="{{ url_for('add_promo') }}" class="premium-stack-form">
+        <div class="premium-grid-row">
+          <label class="premium-label">
+            Kode Promo
+            <input name="code" type="text" placeholder="e.g. SENJA20" required>
+          </label>
+          <label class="premium-label">
+            Nilai Diskon (IDR)
+            <input name="discount" type="number" placeholder="5000" required>
+          </label>
+        </div>
+        <div class="premium-grid-row">
+          <label class="premium-label">
+            Min. Pembelian (IDR)
+            <input name="min_purchase" type="number" placeholder="50000" required>
+          </label>
+          <label class="premium-label">
+            Keterangan
+            <input name="description" type="text" placeholder="Berlaku untuk semua menu" required>
+          </label>
+        </div>
+        <button class="btn btn-gold btn-large" type="submit">Aktifkan Promo</button>
       </form>
-    </div>
+    </article>
 
     <div class="table-card">
-      <table>
+      <table class="premium-table">
         <thead><tr><th>Kode</th><th>Keterangan</th><th>Diskon</th><th>Min. Beli</th><th>Aksi</th></tr></thead>
         <tbody>
           {% for promo in promos %}
           <tr>
-            <td><strong>{{ promo.code }}</strong></td>
-            <td>{{ promo.description }}</td>
-            <td>{{ promo.discount_value|rupiah }}</td>
-            <td>{{ promo.min_purchase|rupiah }}</td>
+            <td><strong class="promo-code-text">{{ promo.code }}</strong></td>
+            <td class="promo-desc-text">{{ promo.description }}</td>
+            <td><strong class="price-text">{{ promo.discount_value|rupiah }}</strong></td>
+            <td><span class="min-purchase-text">{{ promo.min_purchase|rupiah }}</span></td>
             <td>
-              <form method="post" action="{{ url_for('delete_promo', promo_id=promo.promo_id) }}">
-                <button class="mini-btn danger" type="submit">Hapus</button>
+              <form method="post" action="{{ url_for('delete_promo', promo_id=promo.promo_id) }}" onsubmit="return confirm('Hapus promo ini?')">
+                <button class="action-btn delete small" type="submit">Hapus</button>
               </form>
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="5">Belum ada promo aktif.</td></tr>
+          <tr><td colspan="5" class="table-empty">Belum ada promo aktif.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -188,4 +242,90 @@
     </div>
   </section>
 </div>
+
+<!-- EDIT MENU MODAL -->
+<div id="edit-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Edit Detail Menu</h2>
+      <button class="close-modal" onclick="closeEditModal()">×</button>
+    </div>
+    <form id="edit-form" method="post" enctype="multipart/form-data" class="premium-stack-form">
+      <div class="form-section">
+        <label class="premium-label">
+          Nama Produk
+          <input name="name" id="edit-name" type="text" required>
+        </label>
+        
+        <div class="premium-grid-row">
+          <label class="premium-label">
+            Kategori
+            <select name="category" id="edit-category" required>
+              <option value="Coffee">Coffee</option>
+              <option value="Non-Coffee">Non-Coffee</option>
+              <option value="Snack">Snack</option>
+              <option value="Dessert">Dessert</option>
+            </select>
+          </label>
+          <label class="premium-label">
+            Harga (IDR)
+            <input name="price" id="edit-price" type="number" required>
+          </label>
+        </div>
+
+        <label class="premium-label">
+          Deskripsi
+          <textarea name="description" id="edit-description" rows="3" required></textarea>
+        </label>
+
+        <div class="premium-grid-row" style="align-items: center;">
+          <label class="premium-label">
+            Foto Baru
+            <div class="file-upload-wrapper small">
+              <input name="image" type="file" accept="image/*">
+              <div class="file-upload-placeholder">
+                <span>Ganti Foto</span>
+              </div>
+            </div>
+          </label>
+          <label class="premium-label" style="flex-direction: row; align-items: center; gap: 1rem; cursor: pointer; margin-top: 1.5rem;">
+            <input name="is_active" id="edit-active" type="checkbox" style="width: 20px; height: 20px;">
+            <span style="text-transform: none; font-size: 0.9rem; color: #fff;">Menu Aktif / Bisa Dipesan</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Batal</button>
+        <button type="submit" class="btn btn-gold">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function initEditModal(btn) {
+    const d = btn.dataset;
+    openEditModal(d.id, d.name, d.category, d.price, d.description, d.active === 'true');
+}
+
+function openEditModal(id, name, category, price, description, active) {
+    const modal = document.getElementById('edit-modal');
+    const form = document.getElementById('edit-form');
+    
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-category').value = category;
+    document.getElementById('edit-price').value = price;
+    document.getElementById('edit-description').value = description;
+    document.getElementById('edit-active').checked = active;
+    
+    form.action = `/admin/menu/${id}/edit`;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+</script>
 {% endblock %}

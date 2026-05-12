@@ -6,7 +6,7 @@ import datetime
 from decimal import Decimal
 from functools import wraps
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -76,6 +76,11 @@ def rupiah(value):
 
 
 app.jinja_env.filters["rupiah"] = rupiah
+
+@app.before_request
+def init_cart():
+    if "cart" not in session:
+        session["cart"] = []
 
 
 def format_datetime(value):
@@ -176,34 +181,122 @@ def my_orders():
     return render_template("orders.html", orders=orders)
 
 
+@app.post("/cart/add")
+def add_to_cart():
+    menu_id = request.form.get("menu_id")
+    quantity = int(request.form.get("quantity", 1))
+    note = request.form.get("note", "").strip()
+    
+    menu = menu_table().get_item(Key={"menu_id": menu_id}).get("Item")
+    if not menu:
+        return jsonify({"error": "Menu not found"}), 404
+    
+    cart = session.get("cart", [])
+    # Check if item already in cart with same note
+    existing = next((item for item in cart if item["menu_id"] == menu_id and item["note"] == note), None)
+    if existing:
+        existing["quantity"] = int(existing.get("quantity", 0)) + quantity
+    else:
+        cart.append({
+            "menu_id": menu_id,
+            "name": menu["name"],
+            "price": float(menu["price"]),
+            "quantity": quantity,
+            "note": note,
+            "image_path": menu.get("image_path", "")
+        })
+    
+    session["cart"] = cart
+    session.modified = True
+    
+    # Calculate count safely
+    cart_count = 0
+    for i in cart:
+        cart_count += int(i.get("quantity", 0))
+
+    return jsonify({
+        "message": f"{menu['name']} ditambahkan ke keranjang", 
+        "cart_count": cart_count
+    })
+
+
+@app.get("/cart")
+def view_cart():
+    cart = session.get("cart", [])
+    # Calculate subtotal using float for template display (safe for rupiah filter)
+    subtotal = 0.0
+    for item in cart:
+        try:
+            price = float(item.get("price", 0))
+            qty = int(item.get("quantity", 1))
+            subtotal += price * qty
+        except (TypeError, ValueError):
+            continue
+    return render_template("cart.html", cart=cart, subtotal=subtotal)
+
+
+@app.post("/cart/remove/<int:index>")
+def remove_from_cart(index):
+    cart = session.get("cart", [])
+    if 0 <= index < len(cart):
+        cart.pop(index)
+    session["cart"] = cart
+    session.modified = True
+    return redirect(url_for("view_cart"))
+
+
+@app.post("/cart/clear")
+def clear_cart():
+    session["cart"] = []
+    session.modified = True
+    return redirect(url_for("customer_page"))
+
+
 @app.post("/order")
 def create_order():
     customer_name = request.form.get("customer_name", "").strip()
-    menu_id = request.form.get("menu_id", "").strip()
-    quantity = int(request.form.get("quantity", "1") or 1)
-    note = request.form.get("note", "").strip()
+    promo_code = request.form.get("promo_code", "").strip().upper()
+    cart = session.get("cart", [])
+
+    if not cart:
+        flash("Keranjang belanja kosong.", "warning")
+        return redirect(url_for("customer_page"))
 
     if not customer_name:
         flash("Nama customer wajib diisi.", "danger")
-        return redirect(url_for("customer_page"))
-
-    if quantity < 1:
-        quantity = 1
-
-    menu = menu_table().get_item(Key={"menu_id": menu_id}).get("Item")
-    if not menu or not menu.get("is_active", True):
-        flash("Menu tidak ditemukan atau sedang tidak aktif.", "danger")
-        return redirect(url_for("customer_page"))
+        return redirect(url_for("view_cart"))
 
     order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
-    price = to_decimal(menu.get("price"))
-    subtotal = price * Decimal(quantity)
     
+    items_data = []
+    subtotal = Decimal("0")
+    for item in cart:
+        try:
+            # Defensive conversion to avoid TypeError
+            item_price = to_decimal(item.get("price", 0))
+            item_qty = Decimal(str(item.get("quantity", 1)))
+            item_subtotal = item_price * item_qty
+            
+            subtotal += item_subtotal
+            items_data.append({
+                "menu_id": item.get("menu_id"),
+                "name": item.get("name", "Unknown Item"),
+                "price": item_price,
+                "quantity": int(item_qty),
+                "note": item.get("note", ""),
+                "subtotal": item_subtotal,
+                "image_path": item.get("image_path", "")
+            })
+        except Exception as e:
+            print(f"Error processing cart item: {e}")
+            continue
+
+    # Compat fields for single-item legacy views
+    main_item = items_data[0]
+
     # Promo logic
-    promo_code = request.form.get("promo_code", "").strip().upper()
     discount = Decimal("0")
     applied_promo = None
-    
     if promo_code:
         items = promos_table().scan().get("Items", [])
         promo = next((p for p in items if p.get("code") == promo_code and p.get("is_active")), None)
@@ -214,25 +307,22 @@ def create_order():
             else:
                 flash(f"Promo {promo_code} minimal pembelian {rupiah(promo.get('min_purchase'))}.", "warning")
         else:
-            flash(f"Kode promo {promo_code} tidak valid atau sudah berakhir.", "warning")
+            flash(f"Kode promo {promo_code} tidak valid.", "warning")
 
     total = max(Decimal("0"), subtotal - discount)
 
     order = {
         "order_id": order_id,
         "customer_name": customer_name,
-        "menu_id": menu_id,
-        "menu_name": menu.get("name"),
-        "menu_category": menu.get("category"),
-        "menu_image_path": menu.get("image_path", ""),
-        "quantity": quantity,
-        "price": price,
+        "items": items_data,
+        "menu_name": str(main_item["name"]) + (f" (+{len(items_data)-1} lainnya)" if len(items_data) > 1 else ""),
+        "menu_image_path": main_item.get("image_path", ""),
+        "quantity": int(sum(int(i["quantity"]) for i in items_data)),
         "subtotal": subtotal,
         "discount": discount,
         "total": total,
-        "promo_code": applied_promo or "",
-        "member_username": session.get("admin_username") if session.get("user_role") == "MEMBER" else "",
-        "note": note,
+        "promo_code": str(applied_promo or ""),
+        "member_username": str(session.get("admin_username") if session.get("user_role") == "MEMBER" else ""),
         "status": "QUEUED",
         "receipt_key": "",
         "created_at": now_ts(),
@@ -241,18 +331,20 @@ def create_order():
 
     orders_table().put_item(Item=order)
 
+    # SQS message
     message = {
         "order_id": order_id,
         "customer_name": customer_name,
-        "menu_name": menu.get("name"),
-        "menu_image_path": menu.get("image_path", ""),
-        "quantity": quantity,
+        "items_count": len(items_data),
         "total": int(total),
         "created_at": order["created_at"],
     }
     sqs_client().send_message(QueueUrl=get_queue_url(), MessageBody=json.dumps(message, cls=DecimalEncoder))
 
-    flash(f"Pesanan {order_id} berhasil dibuat. " + (f"Hemat {rupiah(discount)}!" if discount > 0 else ""), "success")
+    session["cart"] = []
+    session.modified = True
+    
+    flash(f"Pesanan {order_id} berhasil dibuat.", "success")
     return redirect(url_for("receipt_page", order_id=order_id))
 
 
@@ -431,7 +523,6 @@ def add_menu():
     category = request.form.get("category", "Signature").strip()
     description = request.form.get("description", "").strip()
     price = request.form.get("price", "0").strip()
-    emoji = request.form.get("emoji", "☕").strip() or "☕"
 
     if not name or not description or not price:
         flash("Nama, deskripsi, dan harga menu wajib diisi.", "danger")
@@ -459,7 +550,6 @@ def add_menu():
             "category": category,
             "description": description,
             "price": price_decimal,
-            "emoji": emoji,
             "image_path": image_path,
             "is_active": True,
             "created_at": now_ts(),
@@ -471,41 +561,59 @@ def add_menu():
     return redirect(url_for("admin_dashboard"))
 
 
-@app.post("/admin/menu/<menu_id>/toggle")
+@app.post("/admin/menu/<menu_id>/edit")
 @admin_required
-def toggle_menu(menu_id):
+def edit_menu(menu_id):
     item = menu_table().get_item(Key={"menu_id": menu_id}).get("Item")
     if not item:
         flash("Menu tidak ditemukan.", "danger")
         return redirect(url_for("admin_dashboard"))
 
-    new_status = not item.get("is_active", True)
+    name = request.form.get("name", item.get("name")).strip()
+    category = request.form.get("category", item.get("category")).strip()
+    description = request.form.get("description", item.get("description")).strip()
+    price = request.form.get("price", str(item.get("price"))).strip()
+    is_active = request.form.get("is_active") == "on"
+
+    try:
+        price_decimal = to_decimal(price)
+    except Exception:
+        flash("Harga tidak valid.", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+    image_file = request.files.get("image")
+    image_path = item.get("image_path", "")
+    if image_file and image_file.filename:
+        try:
+            image_path = save_menu_image(image_file)
+        except ValueError as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("admin_dashboard"))
+
     menu_table().update_item(
         Key={"menu_id": menu_id},
-        UpdateExpression="SET is_active = :active",
-        ExpressionAttributeValues={":active": new_status},
+        UpdateExpression="SET #n = :n, category = :c, description = :d, price = :p, is_active = :a, image_path = :i, updated_at = :u",
+        ExpressionAttributeNames={"#n": "name"},
+        ExpressionAttributeValues={
+            ":n": name,
+            ":c": category,
+            ":d": description,
+            ":p": price_decimal,
+            ":a": is_active,
+            ":i": image_path,
+            ":u": now_ts(),
+        },
     )
-    flash("Status menu berhasil diubah.", "success")
+    flash(f"Menu '{name}' berhasil diperbarui.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
-@app.post("/admin/menu/<menu_id>/photo")
+@app.post("/admin/menu/<menu_id>/delete")
 @admin_required
-def update_menu_photo(menu_id):
-    item = menu_table().get_item(Key={"menu_id": menu_id}).get("Item")
-    if not item:
-        flash("Menu tidak ditemukan.", "danger")
-        return redirect(url_for("admin_dashboard"))
-
-    try:
-        image_path = save_menu_image(request.files.get("image"))
-    except ValueError as exc:
-        flash(str(exc), "danger")
-        return redirect(url_for("admin_dashboard"))
-
-    if not image_path:
-        flash("Pilih file foto terlebih dahulu.", "warning")
-        return redirect(url_for("admin_dashboard"))
+def delete_menu(menu_id):
+    menu_table().delete_item(Key={"menu_id": menu_id})
+    flash("Menu berhasil dihapus.", "success")
+    return redirect(url_for("admin_dashboard"))
 
     menu_table().update_item(
         Key={"menu_id": menu_id},

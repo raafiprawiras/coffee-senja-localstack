@@ -3,13 +3,13 @@ import json
 import boto3
 from botocore.config import Config
 
-from config import AWS_ENDPOINT_URL, AWS_REGION
+from config import AWS_ENDPOINT_URL, AWS_REGION, DYNAMODB_ENDPOINT_URL
 
 
-def _client(service_name: str):
+def _client(service_name: str, endpoint_url=None):
     return boto3.client(
         service_name,
-        endpoint_url=AWS_ENDPOINT_URL,
+        endpoint_url=endpoint_url or AWS_ENDPOINT_URL,
         region_name=AWS_REGION,
         aws_access_key_id="test",
         aws_secret_access_key="test",
@@ -17,10 +17,10 @@ def _client(service_name: str):
     )
 
 
-def _resource(service_name: str):
+def _resource(service_name: str, endpoint_url=None):
     return boto3.resource(
         service_name,
-        endpoint_url=AWS_ENDPOINT_URL,
+        endpoint_url=endpoint_url or AWS_ENDPOINT_URL,
         region_name=AWS_REGION,
         aws_access_key_id="test",
         aws_secret_access_key="test",
@@ -37,11 +37,11 @@ def sqs_client():
 
 
 def dynamodb_resource():
-    return _resource("dynamodb")
+    return _resource("dynamodb", endpoint_url=DYNAMODB_ENDPOINT_URL)
 
 
 def dynamodb_client():
-    return _client("dynamodb")
+    return _client("dynamodb", endpoint_url=DYNAMODB_ENDPOINT_URL)
 
 
 class DecimalEncoder(json.JSONEncoder):

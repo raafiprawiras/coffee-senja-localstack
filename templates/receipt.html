@@ -14,18 +14,63 @@
       {{ 'Pesanan siap diambil' if order.status == 'READY' else 'Pesanan sedang disiapkan' }}
     </div>
 
-    <div class="receipt-lines">
-      <div><span>Customer</span><strong>{{ order.customer_name }}</strong></div>
-      <div><span>Menu</span><strong>{{ order.menu_name }}</strong></div>
-      <div><span>Quantity</span><strong>{{ order.quantity }}</strong></div>
-      <div><span>Harga Satuan</span><strong>{{ order.price|rupiah }}</strong></div>
-      <hr style="border: none; border-top: 1px dashed rgba(217, 169, 79, 0.15); margin: 0.5rem 0;">
-      <div><span>Subtotal</span><strong>{{ order.subtotal|rupiah }}</strong></div>
-      {% if order.discount > 0 %}
-        <div style="color: var(--gold);"><span>Diskon ({{ order.promo_code }})</span><strong>- {{ order.discount|rupiah }}</strong></div>
-      {% endif %}
-      <div class="receipt-total-row"><span>Total Bayar</span><strong>{{ order.total|rupiah }}</strong></div>
-      {% if order.note %}<div><span>Catatan</span><strong>{{ order.note }}</strong></div>{% endif %}
+    <div class="receipt-body">
+      <div class="receipt-row">
+        <span class="label">Customer</span>
+        <strong class="value">{{ order.customer_name }}</strong>
+      </div>
+      
+      <div class="receipt-items-section">
+        <p class="section-title">Rincian Pesanan</p>
+        {% if order.get('items') %}
+          <div class="items-list">
+            {% for item in order.get('items', []) %}
+              <div class="item-entry">
+                <div class="item-main">
+                  <span class="item-name">{{ item.name }}</span>
+                  {% if item.note %}
+                    <small class="item-note">{{ item.note }}</small>
+                  {% endif %}
+                </div>
+                <div class="item-meta">
+                  <span class="item-calc">{{ item.quantity }} x {{ item.price|rupiah }}</span>
+                  <span class="item-sub">{{ item.subtotal|rupiah }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          {# Fallback for legacy single-item orders #}
+          <div class="item-entry">
+            <div class="item-main">
+              <span class="item-name">{{ order.menu_name }}</span>
+            </div>
+            <div class="item-meta">
+              <span class="item-calc">{{ order.quantity }} x {{ order.price|rupiah }}</span>
+              <span class="item-sub">{{ order.total|rupiah }}</span>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="receipt-divider"></div>
+      
+      <div class="summary-rows">
+        <div class="receipt-row">
+          <span class="label">Subtotal</span>
+          <strong class="value">{{ order.subtotal|rupiah }}</strong>
+        </div>
+        {% if order.discount > 0 %}
+          <div class="receipt-row discount">
+            <span class="label">Diskon ({{ order.promo_code }})</span>
+            <strong class="value">- {{ order.discount|rupiah }}</strong>
+          </div>
+        {% endif %}
+        <div class="receipt-row total">
+          <span class="label">Total Bayar</span>
+          <strong class="value">{{ order.total|rupiah }}</strong>
+        </div>
+      </div>
     </div>
 
     {% if receipt %}

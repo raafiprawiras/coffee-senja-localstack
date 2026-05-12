@@ -58,7 +58,7 @@ http://localhost:4566
 ```
 
 
-## Live Edit dari VS Code
+## Live Edit dari VS Code / Antigravity
 
 Project ini sudah memakai bind mount Docker:
 

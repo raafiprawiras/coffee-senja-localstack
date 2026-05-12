@@ -108,7 +108,44 @@
     </div>
   </footer>
 
+  <!-- Floating Cart -->
+  <a href="{{ url_for('view_cart') }}" class="cart-floating-btn {{ 'visible' if session.cart|length > 0 else '' }}" id="cart-floating-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="21" r="1"></circle>
+      <circle cx="20" cy="21" r="1"></circle>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+    </svg>
+    <span class="cart-badge-floating" id="cart-badge">{{ session.cart|sum(attribute='quantity') }}</span>
+  </a>
+
   <script>
+    // Global Cart Logic
+    function updateCartUI(count) {
+      const btn = document.getElementById('cart-floating-btn');
+      const badge = document.getElementById('cart-badge');
+      badge.textContent = count;
+      if (count > 0) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    }
+
+    function showToast(message, category = 'success') {
+      const stack = document.querySelector('.toast-stack') || createToastStack();
+      const toast = document.createElement('div');
+      toast.className = `toast ${category}`;
+      toast.textContent = message;
+      stack.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function createToastStack() {
+      const stack = document.createElement('section');
+      stack.className = 'toast-stack';
+      document.querySelector('main').prepend(stack);
+      return stack;
+    }
     // Elements
     const hamburger = document.getElementById('nav-hamburger');
     const mainNav = document.getElementById('main-nav');

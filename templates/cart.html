@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="cart-shell">
+  <header class="page-hero">
+    <div class="page-hero-content">
+      <p class="eyebrow" style="color: var(--gold); font-weight: 800; letter-spacing: 0.2em;">PEMBAYARAN</p>
+      <h1>Keranjang Belanja</h1>
+      <p>Selesaikan pesanan Anda dan nikmati racikan terbaik kami sebentar lagi.</p>
+    </div>
+  </header>
+
+  <div class="section-padding">
+    {% if cart %}
+      <div class="cart-container">
+        <!-- List of Items -->
+        <div class="cart-items-list">
+          {% for item in cart %}
+            <article class="cart-item">
+              <div class="cart-item-img">
+                {% if item.image_path %}
+                  <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.name }}">
+                {% else %}
+                  <div style="width: 100%; height: 100%; display: grid; place-items: center; background: rgba(255,255,255,0.05); font-size: 2rem;">☕</div>
+                {% endif %}
+              </div>
+              <div class="cart-item-info">
+                <h3>{{ item.name }}</h3>
+                <p>{{ item.price|rupiah }}</p>
+                {% if item.note %}<small>Catatan: {{ item.note }}</small>{% endif %}
+                <form action="{{ url_for('remove_from_cart', index=loop.index0) }}" method="post">
+                  <button type="submit" class="btn-remove-item">Hapus</button>
+                </form>
+              </div>
+              <div class="cart-item-price">
+                <strong>x {{ item.quantity }}</strong>
+                <span style="color: #fff; font-weight: 800; font-size: 1.2rem; display: block; margin-top: 0.5rem;">{{ (item.price * item.quantity)|rupiah }}</span>
+              </div>
+            </article>
+          {% endfor %}
+          
+          <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <a href="{{ url_for('customer_page') }}#menu" class="btn btn-ghost">Tambah Menu Lagi</a>
+            <form action="{{ url_for('clear_cart') }}" method="post">
+              <button type="submit" class="btn btn-ghost" style="color: #e05353;">Kosongkan Keranjang</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Checkout Sidebar -->
+        <aside class="checkout-summary">
+          <h2>Ringkasan Pesanan</h2>
+          
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span>{{ subtotal|rupiah }}</span>
+          </div>
+          
+          <form action="{{ url_for('create_order') }}" method="post">
+            <div class="checkout-form-group">
+              <label for="customer_name">Nama Pemesan</label>
+              <input type="text" id="customer_name" name="customer_name" placeholder="Nama Anda" value="{{ admin_username if admin_username else '' }}" required>
+            </div>
+            
+            <div class="checkout-form-group">
+              <label for="promo_code">Kode Promo (Opsional)</label>
+              <input type="text" id="promo_code" name="promo_code" placeholder="Punya kode promo?">
+            </div>
+
+            <div class="summary-line total">
+              <span>Total</span>
+              <span id="display-total">{{ subtotal|rupiah }}</span>
+            </div>
+
+            <button type="submit" class="btn btn-gold full" style="margin-top: 2rem; padding: 1.2rem;">Konfirmasi & Pesan Sekarang</button>
+          </form>
+          
+          <p style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--cream-muted); text-align: center;">
+            Dengan menekan tombol di atas, pesanan Anda akan segera masuk ke antrean barista kami.
+          </p>
+        </aside>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 6rem 2rem; background: rgba(255,255,255,0.02); border-radius: 40px; border: 1px dashed rgba(255,255,255,0.1);">
+        <div style="font-size: 4rem; margin-bottom: 1.5rem;">🛒</div>
+        <h2 style="font-family: 'Playfair Display', serif; color: #fff; font-size: 2rem;">Keranjang Anda Kosong</h2>
+        <p style="color: var(--cream-muted); margin-bottom: 2.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">Sepertinya Anda belum memilih menu apa pun. Mari temukan racikan favorit Anda!</p>
+        <a href="{{ url_for('customer_page') }}#menu" class="btn btn-gold">Lihat Menu</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -10,6 +10,7 @@ SQS_QUEUE_NAME = os.getenv("SQS_QUEUE_NAME", "coffee-senja-localstack-orders")
 MENU_TABLE_NAME = os.getenv("MENU_TABLE_NAME", "CoffeeSenjaLocalstackMenu")
 ORDERS_TABLE_NAME = os.getenv("ORDERS_TABLE_NAME", "CoffeeSenjaLocalstackOrders")
 USERS_TABLE_NAME = os.getenv("USERS_TABLE_NAME", "CoffeeSenjaLocalstackUsers")
+PROMOS_TABLE_NAME = os.getenv("PROMOS_TABLE_NAME", "CoffeeSenjaLocalstackPromos")
 
 DEFAULT_ADMIN_USERNAME = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
 DEFAULT_ADMIN_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123")

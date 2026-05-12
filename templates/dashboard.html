@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-shell">
+  <!-- Dashboard Header -->
+  <header class="ops-header">
+    <div class="ops-title-group">
+      <p class="ops-eyebrow">KONSOL MANAJEMEN</p>
+      <h1 class="ops-title">Dashboard Operasional</h1>
+      <p class="ops-subtitle">Pantau performa harian, ketersediaan stok, dan transaksi terbaru.</p>
+    </div>
+    <div class="ops-actions">
+      <a href="{{ url_for('admin_dashboard') }}" class="ops-btn ops-btn-outline">Pengaturan Menu</a>
+      <button onclick="window.location.reload()" class="ops-btn ops-btn-primary">Refresh Data</button>
+    </div>
+  </header>
+
+  <!-- Metrics Grid -->
+  <div class="metrics-grid">
+    <div class="metric-card revenue">
+      <span class="metric-label">Pendapatan Hari Ini</span>
+      <h2 class="metric-value">{{ revenue_today|rupiah }}</h2>
+      <p class="metric-hint positive">Target harian aktif</p>
+    </div>
+
+    <div class="metric-card transactions">
+      <span class="metric-label">Total Transaksi</span>
+      <h2 class="metric-value">{{ transactions_today }}</h2>
+      <p class="metric-hint">Pesanan masuk hari ini</p>
+    </div>
+
+    <div class="metric-card inventory {% if low_stock_items %}critical{% endif %}">
+      <span class="metric-label">Status Inventaris</span>
+      <h2 class="metric-value">{{ low_stock_items|length }}</h2>
+      <p class="metric-hint {% if low_stock_items %}warning{% endif %}">
+        {% if low_stock_items %}Stok kritis terdeteksi{% else %}Semua stok aman{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="ops-content-grid">
+    <!-- Inventory Watchlist -->
+    <section class="ops-section">
+      <div class="ops-section-header">
+        <h3 class="ops-section-title">Watchlist Inventaris</h3>
+        <p class="ops-section-desc">Bahan baku di bawah ambang batas aman.</p>
+      </div>
+      <div class="ops-table-container">
+        <table class="ops-table">
+          <thead>
+            <tr>
+              <th>Nama Bahan</th>
+              <th>Stok Saat Ini</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in low_stock_items %}
+            <tr>
+              <td>
+                <span class="item-name">{{ item.name }}</span>
+                <span class="item-meta">Threshold: {{ item.threshold }} {{ item.unit }}</span>
+              </td>
+              <td class="item-stock critical">{{ item.stock }} {{ item.unit }}</td>
+              <td><span class="badge badge-danger">PESAN LAGI</span></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="table-empty">
+                <p>Semua bahan baku tersedia dengan cukup.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="ops-section">
+      <div class="ops-section-header">
+        <h3 class="ops-section-title">Aktivitas Terbaru</h3>
+        <p class="ops-section-desc">Monitoring transaksi pesanan secara real-time.</p>
+      </div>
+      <div class="ops-table-container">
+        <table class="ops-table">
+          <thead>
+            <tr>
+              <th>Pesanan / Waktu</th>
+              <th>Pelanggan</th>
+              <th>Total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in recent_orders %}
+            <tr class="clickable-row">
+              <td>
+                <span class="order-id">#{{ order.order_id[-6:] }}</span>
+                <span class="order-time">{{ order.created_at|datetime }}</span>
+              </td>
+              <td class="customer-name">{{ order.customer_name }}</td>
+              <td class="order-amount">{{ order.total|rupiah }}</td>
+              <td>
+                <span class="status-pill-minimal {{ 'ready' if order.status == 'READY' else 'queued' }}">
+                  {{ order.status }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="table-empty">Belum ada aktivitas pesanan.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<style>
+  /* Base Layout */
+  .ops-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 3rem;
+    gap: 2rem;
+  }
+  .ops-eyebrow {
+    color: var(--gold);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+  .ops-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    color: #fff;
+    margin: 0;
+  }
+  .ops-subtitle {
+    color: var(--cream-muted);
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    max-width: 500px;
+  }
+  .ops-actions { display: flex; gap: 1rem; }
+
+  /* Buttons */
+  .ops-btn {
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    border: none;
+  }
+  .ops-btn-primary { background: var(--gold); color: #000; }
+  .ops-btn-outline { 
+    background: transparent; 
+    color: #fff; 
+    border: 1px solid rgba(255,255,255,0.15); 
+  }
+  .ops-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+  }
+  .metric-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 24px;
+    padding: 2rem;
+    transition: all 0.4s ease;
+  }
+  .metric-card:hover { 
+    background: rgba(255,255,255,0.05); 
+    border-color: rgba(217, 169, 79, 0.2);
+  }
+  .metric-label {
+    display: block;
+    color: var(--cream-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+  .metric-value {
+    color: #fff;
+    font-size: 2.5rem;
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+  }
+  .metric-hint { font-size: 0.85rem; margin-top: 0.5rem; color: var(--cream-muted); font-weight: 600; }
+  .metric-hint.positive { color: #56a86d; }
+  .metric-hint.warning { color: #e05353; }
+  .metric-card.critical { border-left: 4px solid #e05353; }
+
+  /* Content Grid */
+  .ops-content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2.5rem;
+  }
+  .ops-section { margin-bottom: 2rem; }
+  .ops-section-header { margin-bottom: 1.5rem; }
+  .ops-section-title { color: #fff; font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0; }
+  .ops-section-desc { color: var(--cream-muted); font-size: 0.9rem; margin: 0.25rem 0 0; }
+
+  /* Tables */
+  .ops-table-container {
+    background: rgba(255,255,255,0.02);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+    overflow: hidden;
+  }
+  .ops-table { width: 100%; border-collapse: collapse; }
+  .ops-table th {
+    background: rgba(255,255,255,0.03);
+    padding: 1.2rem 1rem;
+    text-align: left;
+    color: var(--gold);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .ops-table td { padding: 1.2rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .item-name { display: block; color: #fff; font-weight: 700; font-size: 1rem; }
+  .item-meta { display: block; color: var(--cream-muted); font-size: 0.8rem; margin-top: 0.2rem; }
+  .item-stock.critical { color: #e05353; font-weight: 800; font-size: 1.1rem; }
+  
+  .order-id { display: block; color: #fff; font-weight: 700; }
+  .order-time { display: block; color: var(--cream-muted); font-size: 0.8rem; }
+  .customer-name { color: var(--cream-muted); }
+  .order-amount { color: #fff; font-weight: 700; }
+
+  .status-pill-minimal {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .status-pill-minimal.ready { background: rgba(86, 168, 109, 0.1); color: #56a86d; }
+  .status-pill-minimal.queued { background: rgba(217, 169, 79, 0.1); color: var(--gold); }
+
+  .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.6rem; font-weight: 800; }
+  .badge-danger { background: rgba(224, 83, 83, 0.1); color: #e05353; }
+  
+  .table-empty { padding: 4rem 2rem; text-align: center; color: var(--cream-muted); }
+
+  @media (max-width: 768px) {
+    .ops-header { flex-direction: column; align-items: flex-start; }
+    .ops-content-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}

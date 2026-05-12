@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="page-shell">
+  <section class="page-hero">
+    <div class="page-hero-content">
+      <p class="eyebrow" style="color: var(--gold); font-weight: 800; letter-spacing: 0.2em;">RIWAYAT ANDA</p>
+      <h1>Pesanan Saya</h1>
+      <p>Lihat kembali momen-momen kopi Anda atau pantau pesanan yang sedang kami siapkan dengan penuh cinta.</p>
+    </div>
+  </section>
+
+  <div class="section-padding">
+    <div class="order-list-premium">
+      {% if orders %}
+        {% for order in orders %}
+          <article class="premium-card order-card-new">
+            <div class="order-header-new">
+              <span style="font-weight: 700; color: #8c7361; font-size: 0.9rem;">{{ (order.created_at or 0)|datetime }}</span>
+              <div class="status-indicator">
+                <span class="status-dot {{ (order.status or 'QUEUED')|lower }}"></span>
+                <span class="{% if order.status == 'READY' %}text-ready{% else %}text-queued{% endif %}">
+                  {{ 'Selesai' if order.status == 'READY' else 'Dalam Antrean' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="order-body-new">
+              <div style="display: flex; align-items: center; gap: 2rem;">
+                <div style="width: 80px; height: 80px; border-radius: 20px; overflow: hidden; background: rgba(255,255,255,0.05); display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.1);">
+                  {% if order.menu_image_path %}
+                    <img src="{{ url_for('static', filename=order.menu_image_path) }}" alt="{{ order.menu_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                  {% else %}
+                    <span style="font-size: 2rem;">☕</span>
+                  {% endif %}
+                </div>
+                <div>
+                  <small style="color: var(--gold); font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;">#{{ order.order_id[:8] }}</small>
+                  <h3 style="font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #fff; margin: 0.25rem 0;">{{ order.menu_name }}</h3>
+                  <p style="font-size: 0.9rem; color: var(--cream-muted);">Jumlah: {{ order.quantity }} item</p>
+                  {% if order.promo_code %}
+                    <span style="display: inline-block; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--gold); background: rgba(217, 169, 79, 0.12); padding: 2px 10px; border-radius: 6px; border: 1px solid rgba(217, 169, 79, 0.2);">✨ {{ order.promo_code }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <small style="display: block; color: var(--cream-muted); font-weight: 600; margin-bottom: 0.25rem;">Total Pembayaran</small>
+                <strong style="font-family: 'Playfair Display', serif; font-size: 1.8rem; color: #fff;">{{ order.total|rupiah }}</strong>
+              </div>
+            </div>
+
+            <div class="order-footer-new">
+              <a href="{{ url_for('receipt_page', order_id=order.order_id) }}" class="btn btn-ghost" style="font-size: 0.85rem;">Rincian Transaksi</a>
+              {% if order.status == 'READY' %}
+                <span style="color: #2e7b44; font-weight: 700; font-size: 0.9rem;">Siap dinikmati!</span>
+              {% else %}
+                <span style="color: #d6a756; font-style: italic; font-size: 0.9rem;">Estimasi waktu: 10 menit</span>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="premium-card" style="text-align: center; padding: 8rem 2rem;">
+          <span style="font-size: 5rem; display: block; margin-bottom: 2rem; opacity: 0.1;">☕</span>
+          <h2 style="font-family: 'Playfair Display', serif; font-size: 2.2rem; margin-bottom: 1rem; color: #fff;">Mulai Cerita Baru</h2>
+          <p style="color: var(--cream-muted); max-width: 400px; margin: 0 auto 3rem;">Anda belum memiliki riwayat pesanan. Mari mulai petualangan rasa Anda bersama kami hari ini.</p>
+          <a href="{{ url_for('customer_page') }}#menu" class="btn btn-gold btn-large">Lihat Menu Sekarang</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<style>
+@media (max-width: 768px) {
+  .order-body-new { flex-direction: column; align-items: flex-start; padding: 2rem; }
+  .order-body-new > div:last-child { text-align: left; margin-top: 1.5rem; }
+  .order-header-new, .order-footer-new { padding: 1.25rem 2rem; }
+}
+  .text-ready { color: #2e7b44; font-weight: 700; }
+  .text-queued { color: #d6a756; font-weight: 700; }
+</style>
+{% endblock %}

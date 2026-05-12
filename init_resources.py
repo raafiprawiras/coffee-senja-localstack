@@ -12,6 +12,7 @@ from config import (
     S3_BUCKET_NAME,
     SQS_QUEUE_NAME,
     USERS_TABLE_NAME,
+    PROMOS_TABLE_NAME,
 )
 
 
@@ -78,7 +79,7 @@ def seed_admin_user():
         Item={
             "username": DEFAULT_ADMIN_USERNAME,
             "password_hash": generate_password_hash(DEFAULT_ADMIN_PASSWORD),
-            "role": "admin",
+            "role": "ADMIN",
             "created_at": int(time.time()),
         }
     )
@@ -181,20 +182,55 @@ def seed_menu():
             batch.put_item(Item=item)
 
 
+def seed_promos():
+    db = dynamodb_resource()
+    table = db.Table(PROMOS_TABLE_NAME)
+    existing = table.scan().get("Items", [])
+    if existing:
+        return
+
+    promos = [
+        {
+            "promo_id": "PR-WELCOME",
+            "code": "SENJAHOO",
+            "discount_value": Decimal("10000"),
+            "description": "Potongan Rp 10.000 untuk member baru.",
+            "min_purchase": Decimal("50000"),
+            "is_active": True,
+            "created_at": int(time.time()),
+        },
+        {
+            "promo_id": "PR-SIGNATURE",
+            "code": "KOPISTIK",
+            "discount_value": Decimal("5000"),
+            "description": "Potongan Rp 5.000 khusus menu signature.",
+            "min_purchase": Decimal("30000"),
+            "is_active": True,
+            "created_at": int(time.time()),
+        },
+    ]
+
+    with table.batch_writer() as batch:
+        for item in promos:
+            batch.put_item(Item=item)
+
+
 def main():
     wait_for_localstack()
     create_table(MENU_TABLE_NAME, "menu_id")
     create_table(ORDERS_TABLE_NAME, "order_id")
     create_table(USERS_TABLE_NAME, "username")
+    create_table(PROMOS_TABLE_NAME, "promo_id")
     create_bucket()
     create_queue()
     seed_admin_user()
     seed_menu()
+    seed_promos()
 
     print("Resource siap:")
     print(
         {
-            "dynamodb_tables": [MENU_TABLE_NAME, ORDERS_TABLE_NAME, USERS_TABLE_NAME],
+            "dynamodb_tables": [MENU_TABLE_NAME, ORDERS_TABLE_NAME, USERS_TABLE_NAME, PROMOS_TABLE_NAME],
             "sqs_queue": SQS_QUEUE_NAME,
             "s3_bucket": S3_BUCKET_NAME,
             "admin_login": f"{DEFAULT_ADMIN_USERNAME} / {DEFAULT_ADMIN_PASSWORD}",

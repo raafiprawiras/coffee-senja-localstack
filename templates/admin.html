@@ -123,6 +123,47 @@
 
   <section class="table-section">
     <div class="section-title">
+      <p class="eyebrow">Marketing Control</p>
+      <h2>Manajemen Promo</h2>
+    </div>
+    
+    <div class="panel-card" style="margin-bottom: 2rem;">
+      <p class="eyebrow">Tambah Promo</p>
+      <form method="post" action="{{ url_for('add_promo') }}" class="form-row">
+        <input name="code" type="text" placeholder="KODE (Contoh: KOPI20)" required style="flex: 1;">
+        <input name="discount" type="number" placeholder="Diskon (Rp)" required style="width: 140px;">
+        <input name="min_purchase" type="number" placeholder="Min. Beli (Rp)" required style="width: 140px;">
+        <input name="description" type="text" placeholder="Keterangan promo..." style="flex: 2;">
+        <button class="btn btn-gold" type="submit" style="padding: 0 2rem;">Tambah</button>
+      </form>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead><tr><th>Kode</th><th>Keterangan</th><th>Diskon</th><th>Min. Beli</th><th>Aksi</th></tr></thead>
+        <tbody>
+          {% for promo in promos %}
+          <tr>
+            <td><strong>{{ promo.code }}</strong></td>
+            <td>{{ promo.description }}</td>
+            <td>{{ promo.discount_value|rupiah }}</td>
+            <td>{{ promo.min_purchase|rupiah }}</td>
+            <td>
+              <form method="post" action="{{ url_for('delete_promo', promo_id=promo.promo_id) }}">
+                <button class="mini-btn danger" type="submit">Hapus</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">Belum ada promo aktif.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="table-section">
+    <div class="section-title">
       <p class="eyebrow">Order History</p>
       <h2>Riwayat Pemesanan</h2>
     </div>

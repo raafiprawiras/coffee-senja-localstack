@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="page-shell">
+  <section class="page-hero">
+    <div class="page-hero-content">
+      <p class="eyebrow" style="color: var(--gold); font-weight: 800; letter-spacing: 0.2em;">PENAWARAN SENJA</p>
+      <h1>Promo Eksklusif</h1>
+      <p>Nikmati pilihan menu favorit dengan harga istimewa. Gunakan kode promo di bawah ini saat melakukan pemesanan.</p>
+    </div>
+  </section>
+
+  <div class="section-padding">
+    <div class="promo-grid">
+      {% for promo in promos %}
+        <article class="premium-card">
+          <div class="promo-card-content">
+            <span style="display: inline-block; padding: 6px 16px; background: rgba(214, 167, 86, 0.1); color: var(--gold); border-radius: 99px; font-size: 0.75rem; font-weight: 800; margin-bottom: 1.5rem;">HEMAT {{ promo.discount_value|rupiah }}</span>
+            <h3 style="font-family: 'Playfair Display', serif; font-size: 1.8rem; margin-bottom: 1rem; color: #fff;">{{ promo.description }}</h3>
+            <p style="color: var(--cream-muted); font-size: 0.95rem; line-height: 1.6;">Min. pembelian: <strong style="color: #fff;">{{ promo.min_purchase|rupiah }}</strong></p>
+          </div>
+          <div class="promo-card-footer">
+            <div class="promo-code">
+              <small style="color: rgba(255,255,255,0.4); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;">Kode Promo</small>
+              <strong style="color: var(--gold); font-size: 1.3rem; letter-spacing: 0.05em;">{{ promo.code }}</strong>
+            </div>
+            <button class="btn btn-gold btn-copy" onclick="copyCode('{{ promo.code }}', this)">Salin Kode</button>
+          </div>
+        </article>
+      {% else %}
+        <div class="premium-card" style="grid-column: 1/-1; text-align: center; padding: 6rem;">
+          <span style="font-size: 4rem; display: block; margin-bottom: 2rem; opacity: 0.2;">🍂</span>
+          <h3 style="color: #fff;">Nantikan Promo Menarik</h3>
+          <p style="color: var(--cream-muted);">Saat ini belum ada promo aktif. Ikuti terus media sosial kami untuk informasi terbaru.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="premium-card" style="margin-top: 6rem; padding: 4rem; background: rgba(255,255,255,0.03); border: 1px dashed rgba(217, 169, 79, 0.3);">
+      <h2 style="font-family: 'Playfair Display', serif; text-align: center; margin-bottom: 3rem; font-size: 2.2rem; color: #fff;">Panduan Pemakaian</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 3rem; color: var(--cream-muted);">
+        <div style="text-align: center;">
+          <strong style="display: block; font-size: 2rem; color: var(--gold); margin-bottom: 1rem;">01</strong>
+          <p style="font-size: 0.95rem;">Salin kode promo yang Anda inginkan dari daftar di atas.</p>
+        </div>
+        <div style="text-align: center;">
+          <strong style="display: block; font-size: 2rem; color: var(--gold); margin-bottom: 1rem;">02</strong>
+          <p style="font-size: 0.95rem;">Buka menu dan pilih pesanan favorit Anda.</p>
+        </div>
+        <div style="text-align: center;">
+          <strong style="display: block; font-size: 2rem; color: var(--gold); margin-bottom: 1rem;">03</strong>
+          <p style="font-size: 0.95rem;">Tempelkan kode di kolom promo saat melakukan checkout.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  function copyCode(code, btn) {
+    navigator.clipboard.writeText(code);
+    const originalText = btn.innerText;
+    btn.innerText = 'Tersalin!';
+    btn.style.background = '#2e7b44';
+    btn.style.borderColor = '#2e7b44';
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  }
+</script>
+{% endblock %}

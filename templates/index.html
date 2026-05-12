@@ -14,6 +14,13 @@
       </p>
 
       <a class="btn btn-gold btn-large" href="#menu">Lihat Menu</a>
+
+      {% if user_role == 'MEMBER' %}
+        <div class="member-promo-tag">
+          <span class="pulse-dot"></span>
+          Member Promo: Diskon 10% untuk pesanan hari ini!
+        </div>
+      {% endif %}
     </div>
 
     <div class="hero-visual">
@@ -31,54 +38,81 @@
   </section>
 </div>
 
-  <div class="order-layout">
+  <div class="menu-section-wrapper">
     <section id="menu" class="menu-area">
-      <div class="category-tabs" role="tablist" aria-label="Kategori menu">
-        <button class="category-tab active" type="button" data-filter="all"> Semua</button>
-        <button class="category-tab" type="button" data-filter="coffee"> Coffee</button>
-        <button class="category-tab" type="button" data-filter="non-coffee"> Non-Coffee</button>
-        <button class="category-tab" type="button" data-filter="snack"> Snack</button>
-        <button class="category-tab" type="button" data-filter="dessert"> Dessert</button>
+      <div class="menu-header-flex">
+        <div class="section-title">
+          <p class="eyebrow">Pilihan Terbaik</p>
+          <h2>Eksplorasi Rasa Senja</h2>
+        </div>
+        <div class="category-tabs" role="tablist" aria-label="Kategori menu">
+          <button class="category-tab active" type="button" data-filter="all"> Semua</button>
+          <button class="category-tab" type="button" data-filter="coffee"> Coffee</button>
+          <button class="category-tab" type="button" data-filter="non-coffee"> Non-Coffee</button>
+          <button class="category-tab" type="button" data-filter="snack"> Snack</button>
+          <button class="category-tab" type="button" data-filter="dessert"> Dessert</button>
+        </div>
       </div>
 
       <div class="menu-grid">
         {% for item in menus %}
           {% set category_value = (item.category or 'coffee')|lower|replace(' ', '-') %}
           <article class="product-card" data-category="{{ category_value }}">
-            <div class="product-photo photo-{{ loop.index % 6 }}">
-              {% if item.image_path %}
-                <img src="{{ url_for('static', filename=item.image_path) }}" alt="Foto {{ item.name }}">
-              {% else %}
-                <span>{{ item.emoji or '☕' }}</span>
-              {% endif %}
+            <div class="product-visual">
+              <div class="product-photo photo-{{ loop.index % 6 }}">
+                {% if item.image_path %}
+                  <img src="{{ url_for('static', filename=item.image_path) }}" alt="Foto {{ item.name }}">
+                {% else %}
+                  <span>{{ item.emoji or '☕' }}</span>
+                {% endif %}
+              </div>
+              <div class="product-overlay">
+                <button class="btn-quick-add toggle-order" type="button">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+              </div>
             </div>
             <div class="product-body">
-              <div>
-                <span class="product-category">{{ item.category }}</span>
+              <div class="product-info">
+                <span class="product-category-tag">{{ item.category }}</span>
                 <h3>{{ item.name }}</h3>
                 <p>{{ item.description }}</p>
               </div>
-              <div class="product-bottom">
-                <strong>{{ item.price|rupiah }}</strong>
-                <button class="small-gold toggle-order" type="button">Tambah +</button>
+              <div class="product-footer">
+                <div class="product-price">
+                  <small>Mulai dari</small>
+                  <strong>{{ item.price|rupiah }}</strong>
+                </div>
+                <button class="btn-order-trigger toggle-order" type="button">Pesan</button>
               </div>
-              <form class="quick-order" method="post" action="{{ url_for('create_order') }}">
+              
+              <form class="quick-order-panel" method="post" action="{{ url_for('create_order') }}">
+                <div class="panel-header">
+                  <h4>Konfirmasi Pesanan</h4>
+                  <button type="button" class="close-panel toggle-order">&times;</button>
+                </div>
                 <input type="hidden" name="menu_id" value="{{ item.menu_id }}">
-                <label>
-                  Nama
-                  <input type="text" name="customer_name" placeholder="Nama kamu" required>
-                </label>
-                <div class="quick-row">
+                <div class="panel-scroll">
                   <label>
-                    Qty
-                    <input type="number" name="quantity" min="1" value="1" required>
+                    Nama Penerima
+                    <input type="text" name="customer_name" placeholder="Nama kamu" value="{{ admin_username if admin_username else '' }}" required>
                   </label>
+                  <div class="panel-row">
+                    <label>
+                      Jumlah
+                      <input type="number" name="quantity" min="1" value="1" required>
+                    </label>
+                    <label>
+                      Catatan
+                      <input type="text" name="note" placeholder="Contoh: Less sugar">
+                    </label>
+                  </div>
                   <label>
-                    Catatan
-                    <input type="text" name="note" placeholder="Less sugar, extra ice...">
+                    Kode Promo
+                    <input type="text" name="promo_code" placeholder="Masukkan kode jika ada">
                   </label>
                 </div>
-                <button class="btn btn-gold full" type="submit">Pesan Menu Ini</button>
+                <button class="btn btn-gold full" type="submit">Konfirmasi & Pesan</button>
               </form>
             </div>
           </article>
@@ -87,63 +121,6 @@
         {% endfor %}
       </div>
     </section>
-
-    <aside id="pesanan" class="order-sidebar">
-      <section class="cart-card">
-        <div class="cart-head">
-          <h2>Pesanan Anda</h2>
-          <span>🧾</span>
-        </div>
-        {% if orders %}
-          <div class="cart-list">
-            {% for order in orders[:3] %}
-              <div class="cart-item">
-                <div class="thumb">
-                  {% if order.menu_image_path %}
-                    <img src="{{ url_for('static', filename=order.menu_image_path) }}" alt="{{ order.menu_name }}">
-                  {% else %}
-                    {{ '☕' if order.menu_category != 'Snack' and order.menu_category != 'Dessert' else '🥐' }}
-                  {% endif %}
-                </div>
-                <div>
-                  <strong>{{ order.menu_name }}</strong>
-                  <small>{{ order.customer_name }} • Qty {{ order.quantity }}</small>
-                  <span class="status-pill {{ order.status|lower }}">{{ 'Siap' if order.status == 'READY' else 'Diproses' }}</span>
-                </div>
-                <b>{{ order.total|rupiah }}</b>
-              </div>
-            {% endfor %}
-          </div>
-          <div class="cart-total">
-            <span>Total pesanan terbaru</span>
-            <strong>{{ orders[0].total|rupiah }}</strong>
-          </div>
-          <a class="btn btn-gold full" href="{{ url_for('receipt_page', order_id=orders[0].order_id) }}">Lihat Receipt</a>
-        {% else %}
-          <div class="empty-cart">
-            <span>☕</span>
-            <strong>Belum ada pesanan</strong>
-            <p>Pilih menu favorit kamu, isi nama, lalu klik pesan.</p>
-          </div>
-        {% endif %}
-      </section>
-
-      <section class="info-card">
-        <div class="info-icon">⏱</div>
-        <div>
-          <h3>Pickup: 15 menit</h3>
-          <p>Pesanan kamu akan disiapkan hangat oleh barista.</p>
-        </div>
-      </section>
-
-      <section class="info-card" id="promo">
-        <div class="info-icon">✨</div>
-        <div>
-          <h3>Promo Senja</h3>
-          <p>Beli 2 menu signature, dapatkan potongan Rp 5.000.</p>
-        </div>
-      </section>
-    </aside>
   </div>
 
   <section id="tentang" class="about-strip">

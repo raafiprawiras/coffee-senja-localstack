@@ -6,47 +6,74 @@
   <title>{{ app_name }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="site-header">
+  <header class="site-header" id="site-header">
+    <!-- Brand -->
     <a class="brand" href="{{ url_for('customer_page') }}" aria-label="Coffee Senja Home">
-  <span class="brand-mark">
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M13 19h20v8.5C33 34.4 28.4 39 22 39s-11-4.6-11-11.5V21c0-1.1.9-2 2-2Z" />
-      <path d="M33 22h3.5c3 0 5.5 2.5 5.5 5.5S39.5 33 36.5 33H33" />
-      <path d="M16 14c0-2.6 2.2-3 2.2-5.3" />
-      <path d="M23 14c0-2.6 2.2-3 2.2-5.3" />
-      <path d="M30 14c0-2.6 2.2-3 2.2-5.3" />
-      <path d="M10 40h27" />
-    </svg>
-  </span>
-  <span class="brand-name">Coffee Senja</span>
-</a>
+      <span class="brand-mark">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M13 19h20v8.5C33 34.4 28.4 39 22 39s-11-4.6-11-11.5V21c0-1.1.9-2 2-2Z" />
+          <path d="M33 22h3.5c3 0 5.5 2.5 5.5 5.5S39.5 33 36.5 33H33" />
+          <path d="M16 14c0-2.6 2.2-3 2.2-5.3" />
+          <path d="M23 14c0-2.6 2.2-3 2.2-5.3" />
+          <path d="M30 14c0-2.6 2.2-3 2.2-5.3" />
+          <path d="M10 40h27" />
+        </svg>
+      </span>
+      <div class="brand-text">
+        <span class="brand-name">Coffee Senja</span>
+        <span class="brand-tagline">Specialty Coffee</span>
+      </div>
+    </a>
 
-    <nav class="main-nav" aria-label="Navigasi utama">
-      <a class="active" href="{{ url_for('customer_page') }}">Beranda</a>
-      <a href="{{ url_for('customer_page') }}#menu">Menu</a>
-      <a href="{{ url_for('customer_page') }}#promo">Promo</a>
-      <a href="{{ url_for('customer_page') }}#tentang">Tentang Kami</a>
-      {% if admin_username %}
-        <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+    <!-- Mobile hamburger -->
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <!-- Navigation -->
+    <nav class="main-nav" id="main-nav" aria-label="Navigasi utama">
+      <a class="nav-link {{ 'active' if request.endpoint == 'customer_page' and not request.query_string else '' }}" href="{{ url_for('customer_page') }}">Beranda</a>
+      <a class="nav-link" href="{{ url_for('customer_page') }}#menu">Menu</a>
+      <a class="nav-link {{ 'active' if request.endpoint == 'promos_page' else '' }}" href="{{ url_for('promos_page') }}">Promo</a>
+      <a class="nav-link {{ 'active' if request.endpoint == 'about_page' else '' }}" href="{{ url_for('about_page') }}">Tentang Kami</a>
+      {% if user_role == 'MEMBER' %}
+        <a class="nav-link {{ 'active' if request.endpoint == 'my_orders' else '' }}" href="{{ url_for('my_orders') }}">Pesanan Saya</a>
+      {% endif %}
+      {% if user_role == 'ADMIN' %}
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}">Admin Utama</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'ops_dashboard' else '' }}" href="{{ url_for('ops_dashboard') }}">Dashboard Harian</a>
       {% endif %}
     </nav>
 
+    <!-- Header Actions -->
     <div class="header-actions">
-      <a class="cart-indicator" href="{{ url_for('customer_page') }}#pesanan" aria-label="Lihat pesanan">
-        <span class="cart-icon">🛍️</span>
-        <span class="cart-badge">{{ order_count|default(0) }}</span>
-      </a>
       {% if admin_username %}
-        <a class="btn btn-gold" href="{{ url_for('logout') }}">Logout</a>
+        <div class="user-chip">
+          <span class="user-avatar">{{ admin_username[0]|upper }}</span>
+          <span class="user-label">{{ admin_username }}</span>
+          {% if user_role == 'MEMBER' %}
+            <span class="role-badge">Member</span>
+          {% endif %}
+        </div>
+        <a class="btn btn-outline-nav" href="{{ url_for('logout') }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </a>
       {% else %}
-        <a class="btn btn-gold" href="{{ url_for('login') }}">Admin</a>
+        <a class="btn btn-nav-login" href="{{ url_for('login') }}" id="btn-login-nav">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Login
+        </a>
       {% endif %}
     </div>
   </header>
+
+  <!-- Mobile nav overlay -->
+  <div class="nav-overlay" id="nav-overlay"></div>
 
   <main>
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -63,9 +90,103 @@
   </main>
 
   <footer class="site-footer">
-    <span>♥ Dibuat dengan cinta untuk pecinta kopi.</span>
-    <span>© Coffee Senja</span>
+    <div class="footer-inner">
+      <a class="footer-brand" href="{{ url_for('customer_page') }}">
+        <span class="footer-brand-mark">
+          <svg viewBox="0 0 48 48" aria-hidden="true" width="22" height="22">
+            <path d="M13 19h20v8.5C33 34.4 28.4 39 22 39s-11-4.6-11-11.5V21c0-1.1.9-2 2-2Z" />
+            <path d="M33 22h3.5c3 0 5.5 2.5 5.5 5.5S39.5 33 36.5 33H33" />
+            <path d="M10 40h27" />
+          </svg>
+        </span>
+        Coffee Senja
+      </a>
+      <span class="footer-sep">·</span>
+      <span>♥ Dibuat dengan cinta untuk pecinta kopi</span>
+      <span class="footer-sep">·</span>
+      <span>© 2025 Coffee Senja</span>
+    </div>
   </footer>
+
+  <script>
+    // Elements
+    const hamburger = document.getElementById('nav-hamburger');
+    const mainNav = document.getElementById('main-nav');
+    const overlay = document.getElementById('nav-overlay');
+    const header = document.getElementById('site-header');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    // Mobile hamburger toggle
+    function toggleNav(open) {
+      mainNav.classList.toggle('nav-open', open);
+      overlay.classList.toggle('active', open);
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      hamburger.classList.toggle('is-open', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+    }
+
+    hamburger.addEventListener('click', () => {
+      const isOpen = mainNav.classList.contains('nav-open');
+      toggleNav(!isOpen);
+    });
+
+    overlay.addEventListener('click', () => toggleNav(false));
+
+    // Handle Active State on Click & Scroll
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href');
+        
+        // If it's an anchor link on the same page
+        if (href.includes('#') && (window.location.pathname === '/' || window.location.pathname === '')) {
+          navLinks.forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+          toggleNav(false);
+        }
+      });
+    });
+
+    // Intersection Observer for Scroll Spying
+    const observerOptions = {
+      root: null,
+      rootMargin: '-20% 0px -70% 0px',
+      threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href.endsWith('#' + id)) {
+              navLinks.forEach(l => l.classList.remove('active'));
+              link.classList.add('active');
+            } else if (id === 'hero' && href === '/') {
+                // Special case for top of page
+                navLinks.forEach(l => l.classList.remove('active'));
+                navLinks[0].classList.add('active');
+            }
+          });
+        }
+      });
+    }, observerOptions);
+
+    // Target sections to observe
+    document.querySelectorAll('section[id]').forEach((section) => {
+      observer.observe(section);
+    });
+
+    // Sticky header scroll effect
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+    // Ensure overlay and nav are closed on page load (especially after login)
+    window.addEventListener('load', () => {
+      toggleNav(false);
+    });
+  </script>
+
 
   {% block scripts %}{% endblock %}
 </body>

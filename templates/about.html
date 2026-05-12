@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="page-shell">
+  <section class="page-hero">
+    <div class="page-hero-content">
+      <p class="eyebrow" style="color: var(--gold); font-weight: 800; letter-spacing: 0.2em;">WARISAN & GAIRAH</p>
+      <h1>Tentang Coffee Senja</h1>
+      <p>Menghadirkan harmoni dalam setiap tegukan, menyatukan tradisi dan inovasi dalam satu cangkir kopi yang sempurna.</p>
+    </div>
+  </section>
+
+  <div class="section-padding">
+    <div class="about-intro">
+      <span class="eyebrow">Kisah Kami</span>
+      <h2>Dedikasi untuk Rasa</h2>
+      <p>Berdiri sejak tahun 2023, Coffee Senja lahir dari keinginan sederhana: menciptakan ruang di mana setiap orang bisa menemukan ketenangan di tengah hiruk-pikuk dunia.</p>
+    </div>
+
+    <section class="feature-block">
+      <div class="feature-image auth-bg-fallback"></div>
+      <div class="feature-text">
+        <h3>Biji Kopi Pilihan</h3>
+        <p>Kami bekerja sama langsung dengan petani lokal dari berbagai pelosok Nusantara untuk memastikan hanya biji kopi terbaik yang sampai ke meja Anda. Setiap proses sangrai dilakukan dengan presisi untuk menjaga profil rasa yang unik.</p>
+      </div>
+    </section>
+
+    <section class="feature-block reverse">
+      <div class="feature-image auth-bg-fallback"></div>
+      <div class="feature-text">
+        <h3>Inovasi Digital</h3>
+        <p>Kami percaya bahwa teknologi harus mempermudah kenyamanan Anda. Dengan sistem pemesanan modern, Anda dapat menikmati kopi favorit tanpa harus mengantre panjang, memberikan Anda lebih banyak waktu untuk menikmati momen senja.</p>
+      </div>
+    </section>
+
+    <div class="values-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 4rem;">
+      <div class="premium-card" style="padding: 3rem; text-align: center;">
+        <span style="font-size: 3rem; display: block; margin-bottom: 1.5rem;">☕</span>
+        <h4 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1rem;">Kualitas</h4>
+        <p style="font-size: 0.95rem; color: var(--cream-muted);">Hanya standar tertinggi untuk setiap tetes kopi.</p>
+      </div>
+      <div class="premium-card" style="padding: 3rem; text-align: center;">
+        <span style="font-size: 3rem; display: block; margin-bottom: 1.5rem;">🌿</span>
+        <h4 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1rem;">Lokal</h4>
+        <p style="font-size: 0.95rem; color: var(--cream-muted);">Mendukung komunitas petani Indonesia.</p>
+      </div>
+      <div class="premium-card" style="padding: 3rem; text-align: center;">
+        <span style="font-size: 3rem; display: block; margin-bottom: 1.5rem;">✨</span>
+        <h4 style="font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 1rem;">Inovasi</h4>
+        <p style="font-size: 0.95rem; color: var(--cream-muted);">Terus berevolusi untuk kenyamanan pelanggan.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<style>
+@media (max-width: 992px) {
+  .feature-block, .feature-block.reverse { grid-template-columns: 1fr; gap: 3rem; }
+  .values-grid { grid-template-columns: 1fr !important; }
+  .feature-image { height: 350px; }
+}
+  .auth-bg-fallback {
+    background-color: #1a1a1a;
+    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("{{ url_for('static', filename='images/auth-bg.png') }}");
+    background-size: cover;
+    background-position: center;
+  }
+</style>
+{% endblock %}

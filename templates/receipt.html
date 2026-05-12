@@ -18,8 +18,13 @@
       <div><span>Customer</span><strong>{{ order.customer_name }}</strong></div>
       <div><span>Menu</span><strong>{{ order.menu_name }}</strong></div>
       <div><span>Quantity</span><strong>{{ order.quantity }}</strong></div>
-      <div><span>Harga</span><strong>{{ order.price|rupiah }}</strong></div>
-      <div><span>Total</span><strong>{{ order.total|rupiah }}</strong></div>
+      <div><span>Harga Satuan</span><strong>{{ order.price|rupiah }}</strong></div>
+      <hr style="border: none; border-top: 1px dashed rgba(217, 169, 79, 0.15); margin: 0.5rem 0;">
+      <div><span>Subtotal</span><strong>{{ order.subtotal|rupiah }}</strong></div>
+      {% if order.discount > 0 %}
+        <div style="color: var(--gold);"><span>Diskon ({{ order.promo_code }})</span><strong>- {{ order.discount|rupiah }}</strong></div>
+      {% endif %}
+      <div class="receipt-total-row"><span>Total Bayar</span><strong>{{ order.total|rupiah }}</strong></div>
       {% if order.note %}<div><span>Catatan</span><strong>{{ order.note }}</strong></div>{% endif %}
     </div>
 
@@ -31,7 +36,13 @@
 
     <div class="receipt-actions">
       <a class="btn btn-gold" href="{{ url_for('customer_page') }}">Pesan Lagi</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') if admin_username else url_for('login') }}">Dashboard</a>
+      {% if user_role == 'ADMIN' %}
+        <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}">Dashboard Admin</a>
+      {% elif user_role == 'MEMBER' %}
+        <a class="btn btn-ghost" href="{{ url_for('my_orders') }}">Pesanan Saya</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
+      {% endif %}
     </div>
   </article>
 </section>

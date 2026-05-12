@@ -2,11 +2,12 @@ import json
 import os
 import time
 import uuid
+import datetime
 from decimal import Decimal
 from functools import wraps
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from aws_clients import DecimalEncoder, dynamodb_resource, s3_client, sqs_client, to_decimal
@@ -18,6 +19,7 @@ from config import (
     S3_BUCKET_NAME,
     SQS_QUEUE_NAME,
     USERS_TABLE_NAME,
+    PROMOS_TABLE_NAME,
 )
 
 app = Flask(__name__)
@@ -60,6 +62,10 @@ def users_table():
     return dynamodb_resource().Table(USERS_TABLE_NAME)
 
 
+def promos_table():
+    return dynamodb_resource().Table(PROMOS_TABLE_NAME)
+
+
 def now_ts():
     return int(time.time())
 
@@ -70,6 +76,19 @@ def rupiah(value):
 
 
 app.jinja_env.filters["rupiah"] = rupiah
+
+
+def format_datetime(value):
+    if not value or int(value) < 1000000:
+        return "-"
+    try:
+        dt = datetime.datetime.fromtimestamp(int(value))
+        return dt.strftime("%d %b %Y, %H:%M")
+    except (ValueError, TypeError):
+        return value
+
+
+app.jinja_env.filters["datetime"] = format_datetime
 
 
 def get_queue_url():
@@ -92,11 +111,22 @@ def all_orders():
     return sorted(items, key=lambda item: item.get("created_at", 0), reverse=True)
 
 
+def admin_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not session.get("admin_username") or session.get("user_role") != "ADMIN":
+            flash("Akses ditolak. Halaman ini hanya untuk Admin.", "danger")
+            return redirect(url_for("customer_page"))
+        return view(*args, **kwargs)
+
+    return wrapped_view
+
+
 def login_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
         if not session.get("admin_username"):
-            flash("Silakan login sebagai admin terlebih dahulu.", "warning")
+            flash("Silakan login terlebih dahulu.", "warning")
             return redirect(url_for("login"))
         return view(*args, **kwargs)
 
@@ -109,14 +139,41 @@ def inject_globals():
         order_count = len(all_orders())
     except Exception:
         order_count = 0
-    return {"app_name": APP_NAME, "admin_username": session.get("admin_username"), "order_count": order_count}
+    return {
+        "app_name": APP_NAME, 
+        "admin_username": session.get("admin_username"), 
+        "user_role": session.get("user_role"),
+        "order_count": order_count
+    }
 
 
 @app.get("/")
 def customer_page():
     menus = active_menus()
     orders = [order for order in all_orders()[:10]]
-    return render_template("index.html", menus=menus, orders=orders)
+    promos = [p for p in promos_table().scan().get("Items", []) if p.get("is_active", True)]
+    return render_template("index.html", menus=menus, orders=orders, promos=promos)
+
+
+@app.get("/promos")
+def promos_page():
+    items = promos_table().scan().get("Items", [])
+    active_promos = [p for p in items if p.get("is_active", True)]
+    return render_template("promos.html", promos=active_promos)
+
+
+@app.get("/about")
+def about_page():
+    return render_template("about.html")
+
+
+@app.get("/my-orders")
+@login_required
+def my_orders():
+    username = session.get("admin_username")
+    # Filter by the hidden member_username field for 100% accuracy
+    orders = [o for o in all_orders() if o.get("member_username") == username]
+    return render_template("orders.html", orders=orders)
 
 
 @app.post("/order")
@@ -140,7 +197,26 @@ def create_order():
 
     order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
     price = to_decimal(menu.get("price"))
-    total = price * Decimal(quantity)
+    subtotal = price * Decimal(quantity)
+    
+    # Promo logic
+    promo_code = request.form.get("promo_code", "").strip().upper()
+    discount = Decimal("0")
+    applied_promo = None
+    
+    if promo_code:
+        items = promos_table().scan().get("Items", [])
+        promo = next((p for p in items if p.get("code") == promo_code and p.get("is_active")), None)
+        if promo:
+            if subtotal >= to_decimal(promo.get("min_purchase", 0)):
+                discount = to_decimal(promo.get("discount_value", 0))
+                applied_promo = promo_code
+            else:
+                flash(f"Promo {promo_code} minimal pembelian {rupiah(promo.get('min_purchase'))}.", "warning")
+        else:
+            flash(f"Kode promo {promo_code} tidak valid atau sudah berakhir.", "warning")
+
+    total = max(Decimal("0"), subtotal - discount)
 
     order = {
         "order_id": order_id,
@@ -151,7 +227,11 @@ def create_order():
         "menu_image_path": menu.get("image_path", ""),
         "quantity": quantity,
         "price": price,
+        "subtotal": subtotal,
+        "discount": discount,
         "total": total,
+        "promo_code": applied_promo or "",
+        "member_username": session.get("admin_username") if session.get("user_role") == "MEMBER" else "",
         "note": note,
         "status": "QUEUED",
         "receipt_key": "",
@@ -172,7 +252,7 @@ def create_order():
     }
     sqs_client().send_message(QueueUrl=get_queue_url(), MessageBody=json.dumps(message, cls=DecimalEncoder))
 
-    flash(f"Pesanan {order_id} berhasil dibuat. Barista sedang menyiapkan pesananmu.", "success")
+    flash(f"Pesanan {order_id} berhasil dibuat. " + (f"Hemat {rupiah(discount)}!" if discount > 0 else ""), "success")
     return redirect(url_for("receipt_page", order_id=order_id))
 
 
@@ -199,14 +279,76 @@ def receipt_page(order_id):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        form_type = request.form.get("form_type", "login")
+
+        # --- LOGIKA REGISTER ---
+        if form_type == "register":
+            full_name = request.form.get("full_name", "").strip()
+            username = request.form.get("new_username", "").strip()
+            password = request.form.get("new_password", "")
+            confirm = request.form.get("confirm_password", "")
+
+            if not username or not password or not full_name:
+                flash("Semua field wajib diisi.", "danger")
+                return render_template("login.html")
+            
+            if password != confirm:
+                flash("Konfirmasi password tidak cocok.", "danger")
+                return render_template("login.html")
+
+            # Cek apakah username sudah ada
+            existing_user = users_table().get_item(Key={"username": username}).get("Item")
+            if existing_user:
+                flash("Username sudah digunakan, silakan pilih yang lain.", "warning")
+                return render_template("login.html")
+
+            # Simpan user baru (Role default: MEMBER)
+            users_table().put_item(
+                Item={
+                    "username": username,
+                    "full_name": full_name,
+                    "password_hash": generate_password_hash(password),
+                    "role": "MEMBER",
+                    "created_at": now_ts()
+                }
+            )
+            flash("Pendaftaran berhasil! Silakan masuk dengan akun baru Anda.", "success")
+            return render_template("login.html")
+
+        # --- LOGIKA LOGIN ---
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+
+        if not username:
+            flash("Username wajib diisi.", "danger")
+            return render_template("login.html")
 
         user = users_table().get_item(Key={"username": username}).get("Item")
         if user and check_password_hash(user.get("password_hash", ""), password):
             session["admin_username"] = username
-            flash("Login admin berhasil.", "success")
-            return redirect(url_for("admin_dashboard"))
+            
+            # --- HOTFIX: Pastikan admin utama selalu dikenali ---
+            from config import DEFAULT_ADMIN_USERNAME
+            if username == DEFAULT_ADMIN_USERNAME:
+                session["user_role"] = "ADMIN"
+                
+                # Perbarui role di database jika kebetulan tersimpan sebagai MEMBER
+                if user.get("role") != "ADMIN":
+                    users_table().update_item(
+                        Key={"username": username},
+                        UpdateExpression="SET #r = :role",
+                        ExpressionAttributeNames={"#r": "role"},
+                        ExpressionAttributeValues={":role": "ADMIN"}
+                    )
+            else:
+                session["user_role"] = user.get("role", "MEMBER")
+            
+            if session["user_role"] == "ADMIN":
+                flash(f"Selamat datang kembali, Admin {username}!", "success")
+                return redirect(url_for("ops_dashboard"))
+            else:
+                flash(f"Halo {user.get('full_name', username)}, selamat menikmati kopi Senja!", "success")
+                return redirect(url_for("customer_page"))
 
         flash("Username atau password salah.", "danger")
 
@@ -221,7 +363,7 @@ def logout():
 
 
 @app.get("/admin")
-@login_required
+@admin_required
 def admin_dashboard():
     menus = all_menus()
     orders = all_orders()
@@ -235,11 +377,55 @@ def admin_dashboard():
         "ready_orders": len(ready_orders),
         "total_sales": total_sales,
     }
-    return render_template("admin.html", menus=menus, orders=orders, queue_orders=queue_orders, stats=stats)
+    return render_template("admin.html", menus=menus, orders=orders, queue_orders=queue_orders, stats=stats, promos=promos_table().scan().get("Items", []))
+
+
+@app.get("/admin/dashboard")
+@admin_required
+def ops_dashboard():
+    """
+    Monitoring dashboard for daily operations.
+    Shows revenue, transactions, inventory alerts, and recent activity.
+    """
+    orders = all_orders()
+    
+    # Calculate today's start timestamp (midnight)
+    today_dt = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_ts = int(today_dt.timestamp())
+    
+    # Filter orders for today
+    today_orders = [o for o in orders if int(o.get("created_at", 0)) >= today_ts]
+    
+    # Metrics
+    total_revenue_today = sum(to_decimal(o.get("total", 0)) for o in today_orders if o.get("status") == "READY")
+    total_transactions_today = len(today_orders)
+    
+    # Inventory Management (Simulation for now as table is not defined in config)
+    # In production, this would be a query to CoffeeSenjaInventory table
+    inventory_items = [
+        {"name": "Biji Kopi Arabica", "stock": 5, "unit": "kg", "threshold": 10},
+        {"name": "Susu UHT", "stock": 8, "unit": "liter", "threshold": 10},
+        {"name": "Gelas Plastik", "stock": 250, "unit": "pcs", "threshold": 50},
+        {"name": "Sirup Karamel", "stock": 2, "unit": "botol", "threshold": 5},
+        {"name": "Bubuk Cokelat", "stock": 12, "unit": "kg", "threshold": 5}
+    ]
+    low_stock_items = [item for item in inventory_items if item["stock"] < item["threshold"]]
+    
+    # Recent activity
+    recent_orders = sorted(orders, key=lambda x: int(x.get("created_at", 0)), reverse=True)[:5]
+    
+    return render_template(
+        "dashboard.html",
+        revenue_today=total_revenue_today,
+        transactions_today=total_transactions_today,
+        low_stock_items=low_stock_items,
+        recent_orders=recent_orders
+    )
+
 
 
 @app.post("/admin/menu")
-@login_required
+@admin_required
 def add_menu():
     name = request.form.get("name", "").strip()
     category = request.form.get("category", "Signature").strip()
@@ -286,7 +472,7 @@ def add_menu():
 
 
 @app.post("/admin/menu/<menu_id>/toggle")
-@login_required
+@admin_required
 def toggle_menu(menu_id):
     item = menu_table().get_item(Key={"menu_id": menu_id}).get("Item")
     if not item:
@@ -304,7 +490,7 @@ def toggle_menu(menu_id):
 
 
 @app.post("/admin/menu/<menu_id>/photo")
-@login_required
+@admin_required
 def update_menu_photo(menu_id):
     item = menu_table().get_item(Key={"menu_id": menu_id}).get("Item")
     if not item:
@@ -331,7 +517,7 @@ def update_menu_photo(menu_id):
 
 
 @app.post("/admin/process-queue")
-@login_required
+@admin_required
 def process_queue():
     sqs = sqs_client()
     queue_url = get_queue_url()
@@ -397,7 +583,51 @@ def process_queue():
     return redirect(url_for("admin_dashboard"))
 
 
+@app.post("/admin/promo")
+@admin_required
+def add_promo():
+    code = request.form.get("code", "").strip().upper()
+    discount = request.form.get("discount", "0").strip()
+    min_purchase = request.form.get("min_purchase", "0").strip()
+    description = request.form.get("description", "").strip()
+
+    if not code or not discount or not min_purchase:
+        flash("Kode, diskon, dan minimal pembelian wajib diisi.", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+    try:
+        discount_val = to_decimal(discount)
+        min_purchase_val = to_decimal(min_purchase)
+    except Exception:
+        flash("Diskon dan minimal pembelian harus berupa angka.", "danger")
+        return redirect(url_for("admin_dashboard"))
+
+    promo_id = f"PR-{uuid.uuid4().hex[:8].upper()}"
+    promos_table().put_item(
+        Item={
+            "promo_id": promo_id,
+            "code": code,
+            "discount_value": discount_val,
+            "min_purchase": min_purchase_val,
+            "description": description,
+            "is_active": True,
+            "created_at": now_ts(),
+        }
+    )
+    flash(f"Promo '{code}' berhasil ditambahkan.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.post("/admin/promo/<promo_id>/delete")
+@admin_required
+def delete_promo(promo_id):
+    promos_table().delete_item(Key={"promo_id": promo_id})
+    flash("Promo berhasil dihapus.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.get("/health")
+
 def health():
     return {"status": "ok", "app": APP_NAME}
 

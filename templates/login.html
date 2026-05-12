@@ -1,28 +1,259 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="login-shell">
-  <div class="login-copy">
-    <p class="eyebrow">Admin Area</p>
-    <h1>Masuk ke dashboard Coffee Senja.</h1>
-    <p>Kelola menu, pantau antrean, dan selesaikan pesanan pelanggan dengan tampilan yang rapi dan profesional.</p>
-    <div class="credential-card">
-      <span>Default Login</span>
-      <strong>admin / admin123</strong>
+<section class="auth-shell">
+
+  <!-- Left: Branding Panel -->
+  <div class="auth-branding">
+    <div class="auth-branding-inner">
+      <div class="auth-logo-wrap">
+        <div class="auth-logo-icon">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M13 19h20v8.5C33 34.4 28.4 39 22 39s-11-4.6-11-11.5V21c0-1.1.9-2 2-2Z" />
+            <path d="M33 22h3.5c3 0 5.5 2.5 5.5 5.5S39.5 33 36.5 33H33" />
+            <path d="M16 14c0-2.6 2.2-3 2.2-5.3" />
+            <path d="M23 14c0-2.6 2.2-3 2.2-5.3" />
+            <path d="M30 14c0-2.6 2.2-3 2.2-5.3" />
+            <path d="M10 40h27" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="auth-brand-title">Coffee Senja</h1>
+          <p class="auth-brand-sub">Specialty Coffee Experience</p>
+        </div>
+      </div>
+
+      <div class="auth-branding-copy">
+        <h2>Selamat Datang Kembali</h2>
+        <p>Masuk ke akun Anda untuk menikmati pengalaman memesan kopi yang lebih personal, pantau pesanan, dan dapatkan promo eksklusif.</p>
+      </div>
+
+      <div class="auth-perks">
+        <div class="auth-perk-item">
+          <div>
+            <strong>Pesan Favoritmu</strong>
+            <small>Simpan menu favorit & riwayat pesanan</small>
+          </div>
+        </div>
+        <div class="auth-perk-item">
+          <div>
+            <strong>Promo Eksklusif</strong>
+            <small>Nikmati diskon & penawaran spesial member</small>
+          </div>
+        </div>
+        <div class="auth-perk-item">
+          <div>
+            <strong>Notifikasi Pesanan</strong>
+            <small>Update real-time status pesananmu</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decorative coffee beans -->
+      <div class="auth-deco" aria-hidden="true">
+        <span>☕</span><span>🫘</span><span>☕</span>
+      </div>
     </div>
   </div>
 
-  <form class="login-card" method="post" action="{{ url_for('login') }}">
-    <h2>Admin Login</h2>
-    <label>
-      Username
-      <input type="text" name="username" placeholder="admin" required autofocus>
-    </label>
-    <label>
-      Password
-      <input type="password" name="password" placeholder="admin123" required>
-    </label>
-    <button class="btn btn-gold full" type="submit">Login</button>
-    <a class="text-link center" href="{{ url_for('customer_page') }}">Kembali ke halaman order</a>
-  </form>
+  <!-- Right: Auth Card -->
+  <div class="auth-card-wrap">
+    <div class="auth-card">
+
+      <!-- Tab toggle -->
+      <div class="auth-tabs" role="tablist" aria-label="Pilih mode autentikasi">
+        <button class="auth-tab active" id="tab-login" role="tab" aria-selected="true" aria-controls="panel-login" onclick="switchTab('login')">
+          Masuk
+        </button>
+        <button class="auth-tab" id="tab-register" role="tab" aria-selected="false" aria-controls="panel-register" onclick="switchTab('register')">
+          Daftar
+        </button>
+        <span class="auth-tab-slider" id="auth-tab-slider"></span>
+      </div>
+
+      <!-- ===== LOGIN PANEL ===== -->
+      <div class="auth-panel" id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+        <div class="auth-panel-header">
+          <h2>Masuk ke Akun</h2>
+          <p>Gunakan username dan password yang telah terdaftar</p>
+        </div>
+
+        <form class="auth-form" method="post" action="{{ url_for('login') }}" id="form-login" novalidate>
+          <input type="hidden" name="form_type" value="login">
+
+          <div class="auth-field">
+            <label for="login-username">Username</label>
+            <div class="auth-input-wrap">
+              <input
+                id="login-username"
+                type="text"
+                name="username"
+                placeholder="Masukkan username Anda"
+                autocomplete="username"
+                required
+                autofocus
+              >
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="login-password">Password</label>
+            <div class="auth-input-wrap">
+              <input
+                id="login-password"
+                type="password"
+                name="password"
+                placeholder="Masukkan password Anda"
+                autocomplete="current-password"
+                required
+              >
+              <button type="button" class="auth-eye-btn" onclick="togglePass('login-password', this)" aria-label="Toggle visibility">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-auth" type="submit" id="btn-login-submit">
+            Masuk Sekarang
+          </button>
+        </form>
+
+        <div class="auth-divider"><span>atau</span></div>
+
+        <div class="auth-footer-action">
+          Belum punya akun?
+          <button class="auth-switch-link" onclick="switchTab('register')">Daftar sekarang →</button>
+        </div>
+
+        <div class="auth-hint-card">
+          <span class="auth-hint-icon">🔑</span>
+          <div>
+            <strong>Admin Default</strong>
+            <small>Username: <code>admin</code> &nbsp;/&nbsp; Password: <code>admin123</code></small>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== REGISTER PANEL ===== -->
+      <div class="auth-panel auth-panel-hidden" id="panel-register" role="tabpanel" aria-labelledby="tab-register">
+        <div class="auth-panel-header">
+          <h2>Buat Akun Baru</h2>
+          <p>Daftarkan diri dan mulai nikmati Coffee Senja</p>
+        </div>
+
+        <form class="auth-form" method="post" action="{{ url_for('login') }}" id="form-register" novalidate>
+          <input type="hidden" name="form_type" value="register">
+
+          <div class="auth-field">
+            <label for="reg-name">Nama Lengkap</label>
+            <div class="auth-input-wrap">
+              <input id="reg-name" type="text" name="full_name" placeholder="Nama lengkap Anda" autocomplete="name">
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="reg-username">Username</label>
+            <div class="auth-input-wrap">
+              <input id="reg-username" type="text" name="new_username" placeholder="Buat username unik" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="reg-password">Password</label>
+            <div class="auth-input-wrap">
+              <input
+                id="reg-password"
+                type="password"
+                name="new_password"
+                placeholder="Minimal 8 karakter"
+                autocomplete="new-password"
+              >
+              <button type="button" class="auth-eye-btn" onclick="togglePass('reg-password', this)" aria-label="Toggle visibility">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="auth-strength" id="pass-strength" aria-live="polite"></div>
+          </div>
+
+          <div class="auth-field">
+            <label for="reg-confirm">Konfirmasi Password</label>
+            <div class="auth-input-wrap">
+              <input id="reg-confirm" type="password" name="confirm_password" placeholder="Ulangi password Anda" autocomplete="new-password">
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-auth" type="submit" id="btn-register-submit">
+            Buat Akun Baru
+          </button>
+        </form>
+
+        <div class="auth-divider"><span>atau</span></div>
+
+        <div class="auth-footer-action">
+          Sudah punya akun?
+          <button class="auth-switch-link" onclick="switchTab('login')">← Masuk di sini</button>
+        </div>
+      </div>
+
+    </div><!-- /.auth-card -->
+
+    <a class="auth-back-link" href="{{ url_for('customer_page') }}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Kembali ke halaman utama
+    </a>
+  </div>
+
 </section>
+
+<script>
+  function switchTab(tab) {
+    const loginPanel = document.getElementById('panel-login');
+    const registerPanel = document.getElementById('panel-register');
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const slider = document.getElementById('auth-tab-slider');
+
+    if (tab === 'login') {
+      loginPanel.classList.remove('auth-panel-hidden');
+      registerPanel.classList.add('auth-panel-hidden');
+      tabLogin.classList.add('active');
+      tabLogin.setAttribute('aria-selected', 'true');
+      tabRegister.classList.remove('active');
+      tabRegister.setAttribute('aria-selected', 'false');
+      slider.style.transform = 'translateX(0)';
+    } else {
+      loginPanel.classList.add('auth-panel-hidden');
+      registerPanel.classList.remove('auth-panel-hidden');
+      tabLogin.classList.remove('active');
+      tabLogin.setAttribute('aria-selected', 'false');
+      tabRegister.classList.add('active');
+      tabRegister.setAttribute('aria-selected', 'true');
+      slider.style.transform = 'translateX(100%)';
+    }
+  }
+
+  function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.style.opacity = isHidden ? '1' : '0.5';
+  }
+
+  // Password strength indicator
+  const regPass = document.getElementById('reg-password');
+  const strengthEl = document.getElementById('pass-strength');
+  if (regPass && strengthEl) {
+    regPass.addEventListener('input', function() {
+      const v = this.value;
+      let score = 0;
+      if (v.length >= 8) score++;
+      if (/[A-Z]/.test(v)) score++;
+      if (/[0-9]/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+      const labels = ['', 'Lemah', 'Cukup', 'Kuat', 'Sangat Kuat'];
+      const colors = ['', '#e05353', '#d9a94f', '#56a86d', '#2e8b57'];
+      strengthEl.textContent = v ? `Kekuatan: ${labels[score]}` : '';
+      strengthEl.style.color = colors[score];
+    });
+  }
+</script>
 {% endblock %}
